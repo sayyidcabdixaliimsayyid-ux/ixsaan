@@ -18,6 +18,7 @@ th{background:#fbb040}
 .hidden{display:none!important}
 .ok{color:#1b6b3a;font-weight:700}.bad{color:#b3261e;font-weight:700}
 .msg{color:#b3261e;min-height:22px}
+.note{color:#6b5a3e;font-size:14px}
 .summary{font-weight:700;margin:10px 0}
 </style>
 </head>
@@ -33,19 +34,22 @@ th{background:#fbb040}
 </div>
 
 <div id="panel" class="hidden">
+  <div class="note" id="who"></div>
   <div>
-    <button onclick="show('classes')">الفصول</button>
-    <button onclick="show('students')">الطلاب</button>
-    <button onclick="show('cashier')">أمين الصندوق</button>
+    <button id="btn-classes" onclick="show('classes')">الفصول</button>
+    <button id="btn-students" onclick="show('students')">الطلاب</button>
+    <button id="btn-cashier" onclick="show('cashier')">أمين الصندوق</button>
     <button class="s" onclick="doLogout()">خروج</button>
   </div>
   <div id="msg" class="msg"></div>
 
   <div id="classes" class="card">
-    <h3>إضافة فصل</h3>
-    <input id="cName" placeholder="اسم الفصل">
-    <input id="cLevel" placeholder="المستوى (اختياري)">
-    <button onclick="addClass()">إضافة</button>
+    <div id="classForm">
+      <h3>إضافة فصل</h3>
+      <input id="cName" placeholder="اسم الفصل">
+      <input id="cLevel" placeholder="المستوى (اختياري)">
+      <button onclick="addClass()">إضافة</button>
+    </div>
     <div class="tw"><table>
       <tr><th>الفصل</th><th>المستوى</th><th>عدد الطلاب</th><th></th></tr>
       <tbody id="classList"></tbody>
@@ -53,13 +57,15 @@ th{background:#fbb040}
   </div>
 
   <div id="students" class="card hidden">
-    <h3>تسجيل طالب</h3>
-    <input id="sName" placeholder="الاسم الرباعي">
-    <input id="sGuard" placeholder="اسم ولي الأمر">
-    <input id="sPhone" placeholder="الهاتف">
-    <select id="sClass"></select>
-    <label><input type="checkbox" id="sAdm"> اجتاز المقابلة</label>
-    <button onclick="addStudent()">حفظ</button>
+    <div id="studentForm">
+      <h3>تسجيل طالب</h3>
+      <input id="sName" placeholder="الاسم الرباعي">
+      <input id="sGuard" placeholder="اسم ولي الأمر">
+      <input id="sPhone" placeholder="الهاتف">
+      <select id="sClass"></select>
+      <label><input type="checkbox" id="sAdm"> اجتاز المقابلة</label>
+      <button onclick="addStudent()">حفظ</button>
+    </div>
     <div class="tw"><table>
       <tr><th>الطالب</th><th>ولي الأمر</th><th>الهاتف</th><th>الفصل</th><th>مقبول</th><th></th></tr>
       <tbody id="studentList"></tbody>
@@ -89,14 +95,33 @@ const SUPABASE_URL = 'https://tmhfjnqujgmwayktsbnd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL';
 const FEE = 20;
 
+// الصلاحيات في الواجهة (قاعدة البيانات هي المرجع الفعلي للحماية)
+const ROLE_NAMES = {
+  org_manager: 'مدير المنظمة', exec_manager: 'مدير التنفيذ',
+  institute_general: 'المدير العام للمعهد', institute_manager: 'مدير المعهد',
+  secretary: 'السكرتير', cashier: 'أمين الصندوق',
+  student_affairs: 'شؤون الطلاب', exams: 'قسم الامتحانات'
+};
+const ROLES = {
+  org_manager:       { tabs: ['classes','students','cashier'], seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: false },
+  exec_manager:      { tabs: ['classes','students','cashier'], seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: false },
+  institute_general: { tabs: ['classes','students','cashier'], seePay: true,  editClasses: true,  editStudents: true,  delStudents: true,  pay: true  },
+  institute_manager: { tabs: ['classes','students','cashier'], seePay: true,  editClasses: true,  editStudents: true,  delStudents: true,  pay: false },
+  secretary:         { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: true,  delStudents: false, pay: false },
+  cashier:           { tabs: ['students','cashier'],           seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: true  },
+  student_affairs:   { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: true,  delStudents: false, pay: false },
+  exams:             { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: false, delStudents: false, pay: false }
+};
+
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let classes = [], students = [], payments = [];
+let ME = null, classes = [], students = [], payments = [];
 
 const $ = id => document.getElementById(id);
 const v = id => $(id).value.trim();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => n.toLocaleString('en') + ' $';
 const msg = t => { $('msg').textContent = t || ''; };
+const className = id => { const c = classes.find(x => x.id === id); return c ? c.name : '—'; };
 
 $('month').value = new Date().toISOString().slice(0, 7);
 $('month').onchange = renderCashier;
@@ -117,10 +142,23 @@ async function doLogout() {
   location.reload();
 }
 
-function start() {
+async function start() {
+  const { data: { user } } = await db.auth.getUser();
+  const { data: prof, error } = await db.from('profiles').select('full_name, role').eq('id', user.id).single();
+  if (error || !prof || !ROLES[prof.role]) {
+    $('loginMsg').textContent = 'هذا الحساب غير مرتبط بأي دور في النظام';
+    await db.auth.signOut();
+    return;
+  }
+  ME = { ...prof, ...ROLES[prof.role] };
+  $('who').textContent = `${prof.full_name} — ${ROLE_NAMES[prof.role]}`;
   $('loginBox').classList.add('hidden');
   $('panel').classList.remove('hidden');
-  show('classes');
+
+  ['classes', 'students', 'cashier'].forEach(t => $('btn-' + t).classList.toggle('hidden', !ME.tabs.includes(t)));
+  $('classForm').classList.toggle('hidden', !ME.editClasses);
+  $('studentForm').classList.toggle('hidden', !ME.editStudents);
+  show(ME.tabs[0]);
   loadAll();
 }
 
@@ -128,7 +166,7 @@ async function loadAll() {
   const [c, s, p] = await Promise.all([
     db.from('classes').select('*').order('name'),
     db.from('students').select('*').order('full_name'),
-    db.from('payments').select('*')
+    ME.seePay ? db.from('payments').select('*') : Promise.resolve({ data: [], error: null })
   ]);
   const err = c.error || s.error || p.error;
   if (err) { msg('خطأ في تحميل البيانات: ' + err.message); return; }
@@ -146,17 +184,23 @@ function renderAll() {
   $('classList').innerHTML = classes.length
     ? classes.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.level)}</td>
         <td>${students.filter(s => s.class_id === c.id).length}</td>
-        <td><button class="s" onclick="delClass(${c.id})">حذف</button></td></tr>`).join('')
+        <td>${ME.editClasses ? `<button class="s" onclick="delClass(${c.id})">حذف</button>` : ''}</td></tr>`).join('')
     : '<tr><td colspan="4">لا توجد فصول بعد</td></tr>';
 
   $('studentList').innerHTML = students.length
-    ? students.map(s => `<tr>
-        <td>${esc(s.full_name)}</td><td>${esc(s.guardian_name)}</td><td>${esc(s.phone)}</td>
-        <td><select onchange="moveStudent(${s.id}, this.value)"><option value="">—</option>
-          ${classes.map(c => `<option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
-        </select></td>
-        <td><input type="checkbox" ${s.admitted ? 'checked' : ''} onchange="toggleAdm(${s.id}, this.checked)"></td>
-        <td><button class="s" onclick="delStudent(${s.id})">حذف</button></td></tr>`).join('')
+    ? students.map(s => {
+        const cls = ME.editStudents
+          ? `<select onchange="moveStudent(${s.id}, this.value)"><option value="">—</option>
+              ${classes.map(c => `<option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+             </select>`
+          : esc(className(s.class_id));
+        const adm = ME.editStudents
+          ? `<input type="checkbox" ${s.admitted ? 'checked' : ''} onchange="toggleAdm(${s.id}, this.checked)">`
+          : (s.admitted ? 'نعم' : 'لا');
+        const del = ME.delStudents ? `<button class="s" onclick="delStudent(${s.id})">حذف</button>` : '';
+        return `<tr><td>${esc(s.full_name)}</td><td>${esc(s.guardian_name)}</td><td>${esc(s.phone)}</td>
+          <td>${cls}</td><td>${adm}</td><td>${del}</td></tr>`;
+      }).join('')
     : '<tr><td colspan="6">لا يوجد طلاب بعد</td></tr>';
 
   renderCashier();
@@ -229,11 +273,11 @@ function renderCashier() {
         const pd = paidFor(s.id, month);
         const bal = Math.max(FEE - pd, 0);
         req += FEE; paid += Math.min(pd, FEE);
-        const cls = classes.find(c => c.id === s.class_id);
-        return `<tr><td>${esc(s.full_name)}</td><td>${esc(cls ? cls.name : '—')}</td>
+        const btn = ME.pay ? `<button onclick="pay(${s.id})">تسجيل دفعة</button>` : '';
+        return `<tr><td>${esc(s.full_name)}</td><td>${esc(className(s.class_id))}</td>
           <td>${money(pd)}</td><td>${money(bal)}</td>
           <td class="${bal ? 'bad' : 'ok'}">${bal ? 'غير مسدد كاملاً' : 'مسدد'}</td>
-          <td><button onclick="pay(${s.id})">تسجيل دفعة</button></td></tr>`;
+          <td>${btn}</td></tr>`;
       }).join('')
     : '<tr><td colspan="6">لا يوجد طلاب</td></tr>';
 
