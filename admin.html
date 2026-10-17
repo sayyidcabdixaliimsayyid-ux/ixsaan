@@ -11,10 +11,12 @@ h1{color:#1b6b3a;font-size:22px}
 input,select{font:inherit;padding:8px;border:1px solid #e8d3a2;border-radius:8px;margin:4px;max-width:100%}
 button{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;margin:4px}
 button.s{background:#f7941d;color:#3a2400}
+button:disabled{opacity:.4;cursor:default}
 table{border-collapse:collapse;width:100%;min-width:520px}
 th,td{border-bottom:1px solid #e8d3a2;padding:6px;text-align:start;font-size:14px}
 th{background:#fbb040}
 .tw{overflow-x:auto}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}
 .hidden{display:none!important}
 .ok{color:#1b6b3a;font-weight:700}.bad{color:#b3261e;font-weight:700}
 .msg{color:#b3261e;min-height:22px}
@@ -43,6 +45,7 @@ th{background:#fbb040}
   </div>
   <div id="msg" class="msg"></div>
 
+  <!-- الفصول -->
   <div id="classes" class="card">
     <div id="classForm">
       <h3>إضافة فصل</h3>
@@ -56,6 +59,7 @@ th{background:#fbb040}
     </table></div>
   </div>
 
+  <!-- الطلاب -->
   <div id="students" class="card hidden">
     <div id="studentForm">
       <h3>تسجيل طالب</h3>
@@ -66,26 +70,38 @@ th{background:#fbb040}
       <label><input type="checkbox" id="sAdm"> اجتاز المقابلة</label>
       <button onclick="addStudent()">حفظ</button>
     </div>
+    <div class="row">
+      <input id="sSearch" placeholder="بحث بالاسم أو ولي الأمر أو الهاتف" oninput="debounced(sSearchNow)" style="min-width:260px">
+    </div>
     <div class="tw"><table>
       <tr><th>الطالب</th><th>ولي الأمر</th><th>الهاتف</th><th>الفصل</th><th>مقبول</th><th></th></tr>
       <tbody id="studentList"></tbody>
     </table></div>
+    <div class="row">
+      <button class="s" onclick="sPage(-1)">السابق</button>
+      <span class="note" id="sInfo"></span>
+      <button class="s" onclick="sPage(1)">التالي</button>
+    </div>
   </div>
 
+  <!-- أمين الصندوق -->
   <div id="cashier" class="card hidden">
     <h3>أمين الصندوق</h3>
-    <label>الشهر <input type="month" id="month"></label>
-    <label>الفصل <select id="cFilter"></select></label>
+    <div class="row">
+      <label>الشهر <input type="month" id="month"></label>
+      <label>الفصل <select id="cFilter"></select></label>
+      <input id="cSearch" placeholder="بحث بالاسم أو الهاتف" oninput="debounced(cSearchNow)">
+    </div>
     <div class="summary" id="summary"></div>
     <div class="tw"><table>
       <tr><th>الطالب</th><th>الفصل</th><th>المسدد</th><th>المتبقي</th><th>الحالة</th><th></th></tr>
       <tbody id="cashList"></tbody>
     </table></div>
-    <h3>ملخص حسب الفصل</h3>
-    <div class="tw"><table>
-      <tr><th>الفصل</th><th>عدد الطلاب</th><th>المسددون كاملاً</th></tr>
-      <tbody id="classSummary"></tbody>
-    </table></div>
+    <div class="row">
+      <button class="s" onclick="cPage(-1)">السابق</button>
+      <span class="note" id="cInfo"></span>
+      <button class="s" onclick="cPage(1)">التالي</button>
+    </div>
   </div>
 </div>
 
@@ -94,8 +110,8 @@ th{background:#fbb040}
 const SUPABASE_URL = 'https://tmhfjnqujgmwayktsbnd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL';
 const FEE = 20;
+const PAGE = 50;
 
-// الصلاحيات في الواجهة (قاعدة البيانات هي المرجع الفعلي للحماية)
 const ROLE_NAMES = {
   org_manager: 'مدير المنظمة', exec_manager: 'مدير التنفيذ',
   institute_general: 'المدير العام للمعهد', institute_manager: 'مدير المعهد',
@@ -114,21 +130,36 @@ const ROLES = {
 };
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let ME = null, classes = [], students = [], payments = [];
+let ME = null;
+let classes = [], classCounts = {};
+let sRows = [], sCount = 0, sState = { q: '', p: 0 };
+let cRows = [], cCount = 0, cPays = [], cState = { q: '', p: 0, cls: '' };
+let dt;
 
 const $ = id => document.getElementById(id);
 const v = id => $(id).value.trim();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => n.toLocaleString('en') + ' $';
 const msg = t => { $('msg').textContent = t || ''; };
+const pages = n => Math.max(1, Math.ceil(n / PAGE));
 const className = id => { const c = classes.find(x => x.id === id); return c ? c.name : '—'; };
+function debounced(fn) { clearTimeout(dt); dt = setTimeout(fn, 400); }
+
+// بحث في قاعدة البيانات مباشرة، لا في المتصفح
+function searchFilter(q) {
+  const t = (q || '').replace(/[%,()]/g, ' ').trim();
+  if (!t) return null;
+  return `full_name.ilike.%${t}%,guardian_name.ilike.%${t}%,phone.ilike.%${t}%`;
+}
 
 $('month').value = new Date().toISOString().slice(0, 7);
-$('month').onchange = renderCashier;
-$('cFilter').onchange = renderCashier;
+$('month').onchange = () => { cState.p = 0; loadCashier(); };
+$('cFilter').onchange = () => { cState.cls = $('cFilter').value; cState.p = 0; loadCashier(); };
 
 function show(tab) {
   ['classes', 'students', 'cashier'].forEach(t => $(t).classList.toggle('hidden', t !== tab));
+  if (tab === 'students') loadStudents();
+  if (tab === 'cashier') loadCashier();
 }
 
 async function doLogin() {
@@ -158,37 +189,77 @@ async function start() {
   ['classes', 'students', 'cashier'].forEach(t => $('btn-' + t).classList.toggle('hidden', !ME.tabs.includes(t)));
   $('classForm').classList.toggle('hidden', !ME.editClasses);
   $('studentForm').classList.toggle('hidden', !ME.editStudents);
+
+  await loadClasses();
   show(ME.tabs[0]);
-  loadAll();
 }
 
-async function loadAll() {
-  const [c, s, p] = await Promise.all([
-    db.from('classes').select('*').order('name'),
-    db.from('students').select('*').order('full_name'),
-    ME.seePay ? db.from('payments').select('*') : Promise.resolve({ data: [], error: null })
-  ]);
-  const err = c.error || s.error || p.error;
-  if (err) { msg('خطأ في تحميل البيانات: ' + err.message); return; }
-  classes = c.data; students = s.data; payments = p.data;
-  renderAll();
+function refreshAll() {
+  loadClasses();
+  loadStudents();
+  if (ME.tabs.includes('cashier')) loadCashier();
 }
 
-function renderAll() {
+// ---------- الفصول ----------
+async function loadClasses() {
+  const { data, error } = await db.from('classes').select('*').order('name');
+  if (error) return msg(error.message);
+  classes = data;
+  const res = await Promise.all(classes.map(c =>
+    db.from('students').select('id', { count: 'exact', head: true }).eq('class_id', c.id)));
+  classCounts = {};
+  classes.forEach((c, i) => classCounts[c.id] = res[i].count || 0);
+  fillClassSelects();
+  renderClasses();
+}
+
+function fillClassSelects() {
   const opts = classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
   $('sClass').innerHTML = '<option value="">بدون فصل</option>' + opts;
-  const curF = $('cFilter').value;
   $('cFilter').innerHTML = '<option value="">كل الفصول</option>' + opts;
-  $('cFilter').value = curF;
+  $('cFilter').value = cState.cls;
+}
 
+function renderClasses() {
   $('classList').innerHTML = classes.length
     ? classes.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.level)}</td>
-        <td>${students.filter(s => s.class_id === c.id).length}</td>
+        <td>${classCounts[c.id] || 0}</td>
         <td>${ME.editClasses ? `<button class="s" onclick="delClass(${c.id})">حذف</button>` : ''}</td></tr>`).join('')
     : '<tr><td colspan="4">لا توجد فصول بعد</td></tr>';
+}
 
-  $('studentList').innerHTML = students.length
-    ? students.map(s => {
+async function addClass() {
+  const name = v('cName');
+  if (!name) return msg('أدخل اسم الفصل');
+  const { error } = await db.from('classes').insert({ name, level: v('cLevel') || null });
+  if (error) return msg(error.message);
+  $('cName').value = ''; $('cLevel').value = '';
+  loadClasses();
+}
+
+async function delClass(id) {
+  if (!confirm('حذف الفصل؟ سيبقى الطلاب مسجلين بدون فصل.')) return;
+  const { error } = await db.from('classes').delete().eq('id', id);
+  if (error) return msg(error.message);
+  refreshAll();
+}
+
+// ---------- الطلاب ----------
+async function loadStudents() {
+  const from = sState.p * PAGE, to = from + PAGE - 1;
+  let q = db.from('students').select('*', { count: 'exact' }).order('full_name').range(from, to);
+  const f = searchFilter(sState.q);
+  if (f) q = q.or(f);
+  const { data, error, count } = await q;
+  if (error) return msg(error.message);
+  sRows = data; sCount = count || 0;
+  renderStudents();
+}
+
+function renderStudents() {
+  $('sInfo').textContent = `${sCount} طالب — صفحة ${sState.p + 1} من ${pages(sCount)}`;
+  $('studentList').innerHTML = sRows.length
+    ? sRows.map(s => {
         const cls = ME.editStudents
           ? `<select onchange="moveStudent(${s.id}, this.value)"><option value="">—</option>
               ${classes.map(c => `<option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
@@ -201,25 +272,14 @@ function renderAll() {
         return `<tr><td>${esc(s.full_name)}</td><td>${esc(s.guardian_name)}</td><td>${esc(s.phone)}</td>
           <td>${cls}</td><td>${adm}</td><td>${del}</td></tr>`;
       }).join('')
-    : '<tr><td colspan="6">لا يوجد طلاب بعد</td></tr>';
-
-  renderCashier();
+    : '<tr><td colspan="6">لا توجد نتائج</td></tr>';
 }
 
-async function addClass() {
-  const name = v('cName');
-  if (!name) return msg('أدخل اسم الفصل');
-  const { error } = await db.from('classes').insert({ name, level: v('cLevel') || null });
-  if (error) return msg(error.message);
-  $('cName').value = ''; $('cLevel').value = '';
-  loadAll();
-}
-
-async function delClass(id) {
-  if (!confirm('حذف الفصل؟ سيبقى الطلاب مسجلين بدون فصل.')) return;
-  const { error } = await db.from('classes').delete().eq('id', id);
-  if (error) return msg(error.message);
-  loadAll();
+function sSearchNow() { sState.q = v('sSearch'); sState.p = 0; loadStudents(); }
+function sPage(d) {
+  const np = sState.p + d;
+  if (np < 0 || np >= pages(sCount)) return;
+  sState.p = np; loadStudents();
 }
 
 async function addStudent() {
@@ -235,43 +295,58 @@ async function addStudent() {
   if (error) return msg(error.message);
   ['sName', 'sGuard', 'sPhone'].forEach(id => $(id).value = '');
   $('sAdm').checked = false;
-  loadAll();
+  sState.p = 0;
+  refreshAll();
 }
 
 async function moveStudent(id, classId) {
   const { error } = await db.from('students').update({ class_id: Number(classId) || null }).eq('id', id);
   if (error) return msg(error.message);
-  loadAll();
+  refreshAll();
 }
 
 async function toggleAdm(id, val) {
   const { error } = await db.from('students').update({ admitted: val }).eq('id', id);
   if (error) return msg(error.message);
-  loadAll();
+  refreshAll();
 }
 
 async function delStudent(id) {
   if (!confirm('حذف الطالب وكل مدفوعاته؟')) return;
   const { error } = await db.from('students').delete().eq('id', id);
   if (error) return msg(error.message);
-  loadAll();
+  refreshAll();
 }
 
-function paidFor(sid, month) {
-  return payments.filter(p => p.student_id === sid && p.month === month)
-                 .reduce((a, p) => a + Number(p.amount), 0);
+// ---------- أمين الصندوق ----------
+async function loadCashier() {
+  const month = $('month').value;
+  const from = cState.p * PAGE, to = from + PAGE - 1;
+  let q = db.from('students').select('*', { count: 'exact' }).order('full_name').range(from, to);
+  if (cState.cls) q = q.eq('class_id', Number(cState.cls));
+  const f = searchFilter(cState.q);
+  if (f) q = q.or(f);
+  const { data, error, count } = await q;
+  if (error) return msg(error.message);
+  cRows = data; cCount = count || 0;
+
+  const ids = cRows.map(s => s.id);
+  cPays = [];
+  if (ids.length) {
+    const { data: pd, error: pe } = await db.from('payments').select('*').eq('month', month).in('student_id', ids);
+    if (pe) return msg(pe.message);
+    cPays = pd;
+  }
+  renderCashier();
 }
 
 function renderCashier() {
-  const month = $('month').value;
-  const f = $('cFilter').value;
-  const list = students.filter(s => !f || String(s.class_id) === f);
+  const paidOf = sid => cPays.filter(p => p.student_id === sid).reduce((a, p) => a + Number(p.amount), 0);
   let req = 0, paid = 0;
 
-  $('cashList').innerHTML = list.length
-    ? list.map(s => {
-        const pd = paidFor(s.id, month);
-        const bal = Math.max(FEE - pd, 0);
+  $('cashList').innerHTML = cRows.length
+    ? cRows.map(s => {
+        const pd = paidOf(s.id), bal = Math.max(FEE - pd, 0);
         req += FEE; paid += Math.min(pd, FEE);
         const btn = ME.pay ? `<button onclick="pay(${s.id})">تسجيل دفعة</button>` : '';
         return `<tr><td>${esc(s.full_name)}</td><td>${esc(className(s.class_id))}</td>
@@ -279,30 +354,31 @@ function renderCashier() {
           <td class="${bal ? 'bad' : 'ok'}">${bal ? 'غير مسدد كاملاً' : 'مسدد'}</td>
           <td>${btn}</td></tr>`;
       }).join('')
-    : '<tr><td colspan="6">لا يوجد طلاب</td></tr>';
+    : '<tr><td colspan="6">لا توجد نتائج</td></tr>';
 
   $('summary').textContent =
-    `المطلوب: ${money(req)} | المسدد: ${money(paid)} | المتبقي: ${money(req - paid)} | نسبة التحصيل: ${req ? (paid / req * 100).toFixed(1) : 0}%`;
+    `في هذه الصفحة — المطلوب: ${money(req)} | المسدد: ${money(paid)} | المتبقي: ${money(req - paid)}`;
+  $('cInfo').textContent = `${cCount} طالب — صفحة ${cState.p + 1} من ${pages(cCount)}`;
+}
 
-  $('classSummary').innerHTML = classes.length
-    ? classes.map(c => {
-        const ss = students.filter(s => s.class_id === c.id);
-        const full = ss.filter(s => paidFor(s.id, month) >= FEE).length;
-        return `<tr><td>${esc(c.name)}</td><td>${ss.length}</td><td>${full}</td></tr>`;
-      }).join('')
-    : '<tr><td colspan="3">لا توجد فصول</td></tr>';
+function cSearchNow() { cState.q = v('cSearch'); cState.p = 0; loadCashier(); }
+function cPage(d) {
+  const np = cState.p + d;
+  if (np < 0 || np >= pages(cCount)) return;
+  cState.p = np; loadCashier();
 }
 
 async function pay(sid) {
   const month = $('month').value;
-  const s = students.find(x => x.id === sid);
-  const rest = Math.max(FEE - paidFor(sid, month), 0);
+  const s = cRows.find(x => x.id === sid);
+  const already = cPays.filter(p => p.student_id === sid).reduce((a, p) => a + Number(p.amount), 0);
+  const rest = Math.max(FEE - already, 0);
   const input = prompt(`المبلغ المدفوع عن ${s.full_name} لشهر ${month}`, rest);
   const amount = Number(input);
   if (!input || !(amount > 0)) return;
   const { error } = await db.from('payments').insert({ student_id: sid, month, amount });
   if (error) return msg(error.message);
-  loadAll();
+  loadCashier();
 }
 
 db.auth.getSession().then(({ data }) => { if (data.session) start(); });
