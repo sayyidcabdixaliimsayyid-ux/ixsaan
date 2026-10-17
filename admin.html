@@ -41,7 +41,6 @@ th{background:#fbb040}
   </div>
   <div id="msg" class="msg"></div>
 
-  <!-- الفصول -->
   <div id="classes" class="card">
     <h3>إضافة فصل</h3>
     <input id="cName" placeholder="اسم الفصل">
@@ -53,7 +52,6 @@ th{background:#fbb040}
     </table></div>
   </div>
 
-  <!-- الطلاب -->
   <div id="students" class="card hidden">
     <h3>تسجيل طالب</h3>
     <input id="sName" placeholder="الاسم الرباعي">
@@ -68,7 +66,6 @@ th{background:#fbb040}
     </table></div>
   </div>
 
-  <!-- أمين الصندوق -->
   <div id="cashier" class="card hidden">
     <h3>أمين الصندوق</h3>
     <label>الشهر <input type="month" id="month"></label>
@@ -86,11 +83,11 @@ th{background:#fbb040}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const SUPABASE_URL = 'https://tmhfjnqujgmwayktsbnd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL';
-const FEE = 20; // الرسوم الشهرية للطالب بالدولار، غيّرها حسب الحاجة
+const FEE = 20;
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let classes = [], students = [], payments = [];
@@ -99,7 +96,7 @@ const $ = id => document.getElementById(id);
 const v = id => $(id).value.trim();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => n.toLocaleString('en') + ' $';
-const msg = t => $('msg').textContent = t || '';
+const msg = t => { $('msg').textContent = t || ''; };
 
 $('month').value = new Date().toISOString().slice(0, 7);
 $('month').onchange = renderCashier;
@@ -120,7 +117,7 @@ async function doLogout() {
   location.reload();
 }
 
-async function start() {
+function start() {
   $('loginBox').classList.add('hidden');
   $('panel').classList.remove('hidden');
   show('classes');
@@ -140,7 +137,7 @@ async function loadAll() {
 }
 
 function renderAll() {
-  const opts = classes.map(c => <option value="${c.id}">${esc(c.name)}</option>).join('');
+  const opts = classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
   $('sClass').innerHTML = '<option value="">بدون فصل</option>' + opts;
   const curF = $('cFilter').value;
   $('cFilter').innerHTML = '<option value="">كل الفصول</option>' + opts;
@@ -156,7 +153,7 @@ function renderAll() {
     ? students.map(s => `<tr>
         <td>${esc(s.full_name)}</td><td>${esc(s.guardian_name)}</td><td>${esc(s.phone)}</td>
         <td><select onchange="moveStudent(${s.id}, this.value)"><option value="">—</option>
-          ${classes.map(c => <option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>).join('')}
+          ${classes.map(c => `<option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
         </select></td>
         <td><input type="checkbox" ${s.admitted ? 'checked' : ''} onchange="toggleAdm(${s.id}, this.checked)"></td>
         <td><button class="s" onclick="delStudent(${s.id})">حذف</button></td></tr>`).join('')
@@ -241,13 +238,13 @@ function renderCashier() {
     : '<tr><td colspan="6">لا يوجد طلاب</td></tr>';
 
   $('summary').textContent =
-    المطلوب: ${money(req)} | المسدد: ${money(paid)} | المتبقي: ${money(req - paid)} | نسبة التحصيل: ${req ? (paid / req * 100).toFixed(1) : 0}%;
+    `المطلوب: ${money(req)} | المسدد: ${money(paid)} | المتبقي: ${money(req - paid)} | نسبة التحصيل: ${req ? (paid / req * 100).toFixed(1) : 0}%`;
 
   $('classSummary').innerHTML = classes.length
     ? classes.map(c => {
         const ss = students.filter(s => s.class_id === c.id);
         const full = ss.filter(s => paidFor(s.id, month) >= FEE).length;
-        return <tr><td>${esc(c.name)}</td><td>${ss.length}</td><td>${full}</td></tr>;
+        return `<tr><td>${esc(c.name)}</td><td>${ss.length}</td><td>${full}</td></tr>`;
       }).join('')
     : '<tr><td colspan="3">لا توجد فصول</td></tr>';
 }
@@ -256,7 +253,7 @@ async function pay(sid) {
   const month = $('month').value;
   const s = students.find(x => x.id === sid);
   const rest = Math.max(FEE - paidFor(sid, month), 0);
-  const input = prompt(المبلغ المدفوع عن ${s.full_name} لشهر ${month}, rest);
+  const input = prompt(`المبلغ المدفوع عن ${s.full_name} لشهر ${month}`, rest);
   const amount = Number(input);
   if (!input || !(amount > 0)) return;
   const { error } = await db.from('payments').insert({ student_id: sid, month, amount });
@@ -264,7 +261,6 @@ async function pay(sid) {
   loadAll();
 }
 
-// عند فتح الصفحة: إن كانت الجلسة محفوظة ندخل مباشرة
 db.auth.getSession().then(({ data }) => { if (data.session) start(); });
 </script>
 </body>
