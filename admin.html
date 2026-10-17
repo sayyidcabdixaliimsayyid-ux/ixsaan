@@ -202,7 +202,7 @@ function refreshAll() {
 
 // ---------- الفصول ----------
 async function loadClasses() {
-  const { data, error } = await db.from('classes').select('*').order('name');
+  const { data, error } = await db.from('classes').select('*').order('sort_order');
   if (error) return msg(error.message);
   classes = data;
   const res = await Promise.all(classes.map(c =>
