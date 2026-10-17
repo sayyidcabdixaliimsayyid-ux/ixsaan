@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>إدارة معهد الإحسان</title>
+<style>
+body{font-family:Tahoma,Cairo,sans-serif;background:#fdf6e6;color:#2a1d0a;margin:0;padding:16px;line-height:1.6}
+h1{color:#1b6b3a;font-size:22px}
+.card{background:#fff;border:1px solid #e8d3a2;border-radius:12px;padding:14px;margin:10px 0}
+input,select{font:inherit;padding:8px;border:1px solid #e8d3a2;border-radius:8px;margin:4px;max-width:100%}
+button{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;margin:4px}
+button.s{background:#f7941d;color:#3a2400}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{border-bottom:1px solid #e8d3a2;padding:6px;text-align:start;font-size:14px}
+th{background:#fbb040}
+.tw{overflow-x:auto}
+.hidden{display:none!important}
+.ok{color:#1b6b3a;font-weight:700}.bad{color:#b3261e;font-weight:700}
+.msg{color:#b3261e;min-height:22px}
+.summary{font-weight:700;margin:10px 0}
+</style>
+</head>
+<body>
+<h1>إدارة معهد الإحسان لإعداد العلماء</h1>
+
+<div id="loginBox" class="card">
+  <h3>تسجيل دخول الإدارة</h3>
+  <input id="email" type="email" placeholder="البريد الإلكتروني">
+  <input id="pass" type="password" placeholder="كلمة المرور">
+  <button onclick="doLogin()">دخول</button>
+  <div id="loginMsg" class="msg"></div>
+</div>
+
+<div id="panel" class="hidden">
+  <div>
+    <button onclick="show('classes')">الفصول</button>
+    <button onclick="show('students')">الطلاب</button>
+    <button onclick="show('cashier')">أمين الصندوق</button>
+    <button class="s" onclick="doLogout()">خروج</button>
+  </div>
+  <div id="msg" class="msg"></div>
+
+  <!-- الفصول -->
+  <div id="classes" class="card">
+    <h3>إضافة فصل</h3>
+    <input id="cName" placeholder="اسم الفصل">
+    <input id="cLevel" placeholder="المستوى (اختياري)">
+    <button onclick="addClass()">إضافة</button>
+    <div class="tw"><table>
+      <tr><th>الفصل</th><th>المستوى</th><th>عدد الطلاب</th><th></th></tr>
+      <tbody id="classList"></tbody>
+    </table></div>
+  </div>
+
+  <!-- الطلاب -->
+  <div id="students" class="card hidden">
+    <h3>تسجيل طالب</h3>
+    <input id="sName" placeholder="الاسم الرباعي">
+    <input id="sGuard" placeholder="اسم ولي الأمر">
+    <input id="sPhone" placeholder="الهاتف">
+    <select id="sClass"></select>
+    <label><input type="checkbox" id="sAdm"> اجتاز المقابلة</label>
+    <button onclick="addStudent()">حفظ</button>
+    <div class="tw"><table>
+      <tr><th>الطالب</th><th>ولي الأمر</th><th>الهاتف</th><th>الفصل</th><th>مقبول</th><th></th></tr>
+      <tbody id="studentList"></tbody>
+    </table></div>
+  </div>
+
+  <!-- أمين الصندوق -->
+  <div id="cashier" class="card hidden">
+    <h3>أمين الصندوق</h3>
+    <label>الشهر <input type="month" id="month"></label>
+    <label>الفصل <select id="cFilter"></select></label>
+    <div class="summary" id="summary"></div>
+    <div class="tw"><table>
+      <tr><th>الطالب</th><th>الفصل</th><th>المسدد</th><th>المتبقي</th><th>الحالة</th><th></th></tr>
+      <tbody id="cashList"></tbody>
+    </table></div>
+    <h3>ملخص حسب الفصل</h3>
+    <div class="tw"><table>
+      <tr><th>الفصل</th><th>عدد الطلاب</th><th>المسددون كاملاً</th></tr>
+      <tbody id="classSummary"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://tmhfjnqujgmwayktsbnd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL';
+const FEE = 20; // الرسوم الشهرية للطالب بالدولار، غيّرها حسب الحاجة
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let classes = [], students = [], payments = [];
+
+const $ = id => document.getElementById(id);
+const v = id => $(id).value.trim();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => n.toLocaleString('en') + ' $';
+const msg = t => $('msg').textContent = t || '';
+
+$('month').value = new Date().toISOString().slice(0, 7);
+$('month').onchange = renderCashier;
+$('cFilter').onchange = renderCashier;
+
+function show(tab) {
+  ['classes', 'students', 'cashier'].forEach(t => $(t).classList.toggle('hidden', t !== tab));
+}
+
+async function doLogin() {
+  const { error } = await db.auth.signInWithPassword({ email: v('email'), password: $('pass').value });
+  if (error) { $('loginMsg').textContent = 'البريد أو كلمة المرور غير صحيحة'; return; }
+  start();
+}
+
+async function doLogout() {
+  await db.auth.signOut();
+  location.reload();
+}
+
+async function start() {
+  $('loginBox').classList.add('hidden');
+  $('panel').classList.remove('hidden');
+  show('classes');
+  loadAll();
+}
+
+async function loadAll() {
+  const [c, s, p] = await Promise.all([
+    db.from('classes').select('*').order('name'),
+    db.from('students').select('*').order('full_name'),
+    db.from('payments').select('*')
+  ]);
+  const err = c.error || s.error || p.error;
+  if (err) { msg('خطأ في تحميل البيانات: ' + err.message); return; }
+  classes = c.data; students = s.data; payments = p.data;
+  renderAll();
+}
+
+function renderAll() {
+  const opts = classes.map(c => <option value="${c.id}">${esc(c.name)}</option>).join('');
+  $('sClass').innerHTML = '<option value="">بدون فصل</option>' + opts;
+  const curF = $('cFilter').value;
+  $('cFilter').innerHTML = '<option value="">كل الفصول</option>' + opts;
+  $('cFilter').value = curF;
+
+  $('classList').innerHTML = classes.length
+    ? classes.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.level)}</td>
+        <td>${students.filter(s => s.class_id === c.id).length}</td>
+        <td><button class="s" onclick="delClass(${c.id})">حذف</button></td></tr>`).join('')
+    : '<tr><td colspan="4">لا توجد فصول بعد</td></tr>';
+
+  $('studentList').innerHTML = students.length
+    ? students.map(s => `<tr>
+        <td>${esc(s.full_name)}</td><td>${esc(s.guardian_name)}</td><td>${esc(s.phone)}</td>
+        <td><select onchange="moveStudent(${s.id}, this.value)"><option value="">—</option>
+          ${classes.map(c => <option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>).join('')}
+        </select></td>
+        <td><input type="checkbox" ${s.admitted ? 'checked' : ''} onchange="toggleAdm(${s.id}, this.checked)"></td>
+        <td><button class="s" onclick="delStudent(${s.id})">حذف</button></td></tr>`).join('')
+    : '<tr><td colspan="6">لا يوجد طلاب بعد</td></tr>';
+
+  renderCashier();
+}
+
+async function addClass() {
+  const name = v('cName');
+  if (!name) return msg('أدخل اسم الفصل');
+  const { error } = await db.from('classes').insert({ name, level: v('cLevel') || null });
+  if (error) return msg(error.message);
+  $('cName').value = ''; $('cLevel').value = '';
+  loadAll();
+}
+
+async function delClass(id) {
+  if (!confirm('حذف الفصل؟ سيبقى الطلاب مسجلين بدون فصل.')) return;
+  const { error } = await db.from('classes').delete().eq('id', id);
+  if (error) return msg(error.message);
+  loadAll();
+}
+
+async function addStudent() {
+  const full_name = v('sName');
+  if (!full_name) return msg('أدخل اسم الطالب');
+  const { error } = await db.from('students').insert({
+    full_name,
+    guardian_name: v('sGuard') || null,
+    phone: v('sPhone') || null,
+    class_id: Number($('sClass').value) || null,
+    admitted: $('sAdm').checked
+  });
+  if (error) return msg(error.message);
+  ['sName', 'sGuard', 'sPhone'].forEach(id => $(id).value = '');
+  $('sAdm').checked = false;
+  loadAll();
+}
+
+async function moveStudent(id, classId) {
+  const { error } = await db.from('students').update({ class_id: Number(classId) || null }).eq('id', id);
+  if (error) return msg(error.message);
+  loadAll();
+}
+
+async function toggleAdm(id, val) {
+  const { error } = await db.from('students').update({ admitted: val }).eq('id', id);
+  if (error) return msg(error.message);
+  loadAll();
+}
+
+async function delStudent(id) {
+  if (!confirm('حذف الطالب وكل مدفوعاته؟')) return;
+  const { error } = await db.from('students').delete().eq('id', id);
+  if (error) return msg(error.message);
+  loadAll();
+}
+
+function paidFor(sid, month) {
+  return payments.filter(p => p.student_id === sid && p.month === month)
+                 .reduce((a, p) => a + Number(p.amount), 0);
+}
+
+function renderCashier() {
+  const month = $('month').value;
+  const f = $('cFilter').value;
+  const list = students.filter(s => !f || String(s.class_id) === f);
+  let req = 0, paid = 0;
+
+  $('cashList').innerHTML = list.length
+    ? list.map(s => {
+        const pd = paidFor(s.id, month);
+        const bal = Math.max(FEE - pd, 0);
+        req += FEE; paid += Math.min(pd, FEE);
+        const cls = classes.find(c => c.id === s.class_id);
+        return `<tr><td>${esc(s.full_name)}</td><td>${esc(cls ? cls.name : '—')}</td>
+          <td>${money(pd)}</td><td>${money(bal)}</td>
+          <td class="${bal ? 'bad' : 'ok'}">${bal ? 'غير مسدد كاملاً' : 'مسدد'}</td>
+          <td><button onclick="pay(${s.id})">تسجيل دفعة</button></td></tr>`;
+      }).join('')
+    : '<tr><td colspan="6">لا يوجد طلاب</td></tr>';
+
+  $('summary').textContent =
+    المطلوب: ${money(req)} | المسدد: ${money(paid)} | المتبقي: ${money(req - paid)} | نسبة التحصيل: ${req ? (paid / req * 100).toFixed(1) : 0}%;
+
+  $('classSummary').innerHTML = classes.length
+    ? classes.map(c => {
+        const ss = students.filter(s => s.class_id === c.id);
+        const full = ss.filter(s => paidFor(s.id, month) >= FEE).length;
+        return <tr><td>${esc(c.name)}</td><td>${ss.length}</td><td>${full}</td></tr>;
+      }).join('')
+    : '<tr><td colspan="3">لا توجد فصول</td></tr>';
+}
+
+async function pay(sid) {
+  const month = $('month').value;
+  const s = students.find(x => x.id === sid);
+  const rest = Math.max(FEE - paidFor(sid, month), 0);
+  const input = prompt(المبلغ المدفوع عن ${s.full_name} لشهر ${month}, rest);
+  const amount = Number(input);
+  if (!input || !(amount > 0)) return;
+  const { error } = await db.from('payments').insert({ student_id: sid, month, amount });
+  if (error) return msg(error.message);
+  loadAll();
+}
+
+// عند فتح الصفحة: إن كانت الجلسة محفوظة ندخل مباشرة
+db.auth.getSession().then(({ data }) => { if (data.session) start(); });
+</script>
+</body>
+</html>
