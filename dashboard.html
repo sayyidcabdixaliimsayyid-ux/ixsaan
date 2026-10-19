@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة التحكم - معهد الإحسان</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Tahoma,Cairo,sans-serif;background:#fbf7ee;color:#2a1d0a;min-height:100vh}
+
+/* الشريط العلوي */
+.banner{position:relative;overflow:hidden;background:linear-gradient(120deg,#f0592a,#f7941d,#fbb040,#f0592a);background-size:300% 300%;animation:shift 12s ease infinite;color:#fff;padding:22px 18px 16px;text-align:center}
+@keyframes shift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.banner h1{margin:0;font-size:24px;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,.25)}
+.banner .sub{font-size:13px;opacity:.95;margin-top:2px;letter-spacing:.5px}
+.lantern{position:absolute;top:0;font-size:38px;transform-origin:top center;animation:sway 3.5s ease-in-out infinite}
+.lantern.l{left:14px}.lantern.r{right:14px;animation-delay:-1.7s}
+@keyframes sway{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+
+/* الشريط الإخباري */
+.ticker{background:#1b6b3a;color:#fff;overflow:hidden;white-space:nowrap;padding:8px 0;font-size:15px;position:relative}
+.ticker-track{display:inline-block;padding-left:100%;animation:scroll 28s linear infinite}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+.ticker span.sep{margin:0 28px;color:#fbb040}
+
+/* الترحيب والحالة */
+.bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px}
+.who{font-size:16px;font-weight:700}
+.role{font-size:13px;color:#6b5a3e}
+.logout{background:#b3261e;color:#fff;border:0;border-radius:10px;padding:8px 16px;font:inherit;cursor:pointer}
+
+/* بطاقات الإحصاء */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:0 18px}
+.stat{background:#fff;border:1px solid #e8d3a2;border-radius:14px;padding:14px;text-align:center;animation:fadeUp .6s ease both;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.stat .n{font-size:28px;font-weight:900;color:#1b6b3a}
+.stat .t{font-size:13px;color:#6b5a3e}
+
+/* الأزرار */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;padding:18px}
+.tile{position:relative;display:block;text-decoration:none;color:#fff;border-radius:18px;padding:22px 18px;min-height:120px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.12);transition:transform .25s ease,box-shadow .25s ease;animation:fadeUp .6s ease both;cursor:pointer}
+.tile:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 12px 24px rgba(0,0,0,.18)}
+.tile::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);transition:left .6s ease}
+.tile:hover::after{left:120%}
+.tile .ic{font-size:32px;display:block;margin-bottom:6px;animation:bob 2.6s ease-in-out infinite}
+.tile .tt{font-size:17px;font-weight:800}
+.tile .ds{font-size:12px;opacity:.9}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.c-orange{background:linear-gradient(135deg,#f0592a,#f7941d)}
+.c-green{background:linear-gradient(135deg,#1b6b3a,#2f9e5a)}
+.c-blue{background:linear-gradient(135deg,#0b5c9a,#2196d3)}
+.c-gold{background:linear-gradient(135deg,#a86a00,#f5b642)}
+.c-dark{background:linear-gradient(135deg,#4a3a2a,#7a5c3a)}
+.tile.soon{background:#e7e1d3;color:#6b5a3e;cursor:not-allowed;box-shadow:none}
+.tile.soon:hover{transform:none}
+.tile.soon::after{display:none}
+.badge{position:absolute;top:10px;left:10px;background:#fff;color:#8a6100;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px}
+
+/* شاشة الدخول */
+#login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,#fbf7ee,#f3e6c8)}
+.loginCard{background:#fff;border-radius:20px;padding:26px;width:100%;max-width:420px;box-shadow:0 12px 30px rgba(0,0,0,.12);animation:fadeUp .7s ease both}
+.loginCard input{width:100%;font:inherit;padding:12px;border:1px solid #e8d3a2;border-radius:12px;margin:6px 0}
+.loginCard button{width:100%;font:inherit;font-weight:800;background:linear-gradient(135deg,#f0592a,#f7941d);color:#fff;border:0;border-radius:12px;padding:12px;cursor:pointer;margin-top:8px}
+.msg{color:#b3261e;font-weight:700;min-height:20px}
+.hidden{display:none!important}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="loginCard">
+    <h2 style="text-align:center;color:#1b6b3a;margin:4px 0 14px">تسجيل دخول الإدارة</h2>
+    <input id="email" type="email" placeholder="البريد الإلكتروني">
+    <input id="pass" type="password" placeholder="كلمة المرور">
+    <button onclick="doLogin()">دخول</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="banner">
+    <div class="lantern l">🏮</div>
+    <div class="lantern r">🏮</div>
+    <h1>أهلاً بكم في النظام الإداري والتحكم</h1>
+    <div class="sub">معهد الإحسان لإعداد العلماء — IHSAN INSTITUTE FOR THE PREPARATION OF SCHOLARS</div>
+  </div>
+
+  <div class="ticker">
+    <div class="ticker-track" id="tickerText"></div>
+  </div>
+
+  <div class="bar">
+    <div>
+      <div class="who" id="who"></div>
+      <div class="role" id="roleName"></div>
+    </div>
+    <button class="logout" onclick="doLogout()">خروج</button>
+  </div>
+
+  <div id="statsWrap" class="stats hidden"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://tmhfjnqujgmwayktsbnd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+
+const ROLE_NAMES = {
+  org_manager: 'مدير المنظمة', exec_manager: 'مدير التنفيذ',
+  institute_general: 'المدير العام للمعهد', institute_manager: 'مدير المعهد',
+  secretary: 'السكرتير', cashier: 'أمين الصندوق',
+  student_affairs: 'شؤون الطلاب', exams: 'قسم الامتحانات'
+};
+
+// كل الأزرار الممكنة
+const TILES = {
+  register:   { t: 'تسجيل طالب جديد',         d: 'استمارة الطالب الجديد',            c: 'c-orange', href: 'register.html' },
+  students:   { t: 'دليل الطلاب',              d: 'بحث وتعديل وملفات الطلاب',         c: 'c-blue',   href: 'admin.html' },
+  classes:    { t: 'الفصول والمجموعات',        d: 'عرض الفصول وطلاب كل فصل',           c: 'c-green',  href: 'admin.html' },
+  generate:   { t: 'التوليد وإدارة الفصول',    d: 'ترحيل السنة ونقل الطلاب',          c: 'c-green',  href: 'manage.html' },
+  import:     { t: 'استيراد من Excel',         d: 'إضافة كشوف الطلاب دفعة واحدة',     c: 'c-blue',   href: 'import.html' },
+  cashier:    { t: 'تحصيل الرسوم',             d: 'دفع الرسوم الشهرية والقبول',       c: 'c-gold',   href: 'admin.html' },
+  unpaid:     { t: 'كشف المتأخرات',            d: 'الطلاب غير المسددين لهذا الشهر',   c: 'c-gold',   href: 'admin.html' },
+  finance:    { t: 'الملخص المالي',            d: 'المطلوب والمسدد والمتبقي',         c: 'c-dark',   href: 'admin.html' },
+  attendance: { t: 'الحضور والغياب',           d: 'تسجيل الغياب اليومي والأسبوعي',    soon: true },
+  certs:      { t: 'الإفادات والشهادات',       d: 'إفادة قيد وشهادة حسن سيرة',       soon: true },
+  contact:    { t: 'سجل التواصل وأولياء الأمور', d: 'الرسائل والإشعارات',            soon: true },
+  staff:      { t: 'إدارة الكادر التعليمي',    d: 'المعلمون والتكليفات والأداء',       soon: true },
+  reports:    { t: 'التقارير الشاملة',         d: 'النجاح والرسوب والتسجيل',          soon: true },
+  announce:   { t: 'الإعلانات والتعاميم',      d: 'نشر قرار يظهر للجميع',             soon: true },
+  activity:   { t: 'سجل الأنشطة',              d: 'من فعل ماذا ومتى',                  soon: true },
+  receipts:   { t: 'سندات القبض',              d: 'إصدار سند قبض لكل دفعة',           soon: true },
+  expenses:   { t: 'سندات الصرف',              d: 'مصروفات المعهد التشغيلية',         soon: true },
+  exam_cards: { t: 'بطاقات الامتحان',          d: 'لمن سدد الرسوم كاملة',              soon: true },
+  exam_sched: { t: 'جداول الاختبارات',         d: 'توزيع القاعات والطلاب',            soon: true }
+};
+
+// الأزرار لكل دور
+const ROLE_TILES = {
+  secretary:         ['register','students','classes','attendance','certs','contact'],
+  institute_general: ['students','classes','generate','import','register','cashier','unpaid','finance','staff','reports','announce','activity'],
+  institute_manager: ['students','classes','generate','import','register','cashier','unpaid','finance','staff','reports','announce','activity'],
+  org_manager:       ['students','finance','reports'],
+  exec_manager:      ['students','finance','reports'],
+  cashier:           ['cashier','unpaid','receipts','expenses','students'],
+  student_affairs:   ['students','classes','certs','attendance','contact'],
+  exams:             ['students','classes','exam_cards','exam_sched']
+};
+const STATS_ROLES = ['institute_general','institute_manager','org_manager','exec_manager'];
+
+const MESSAGES = [
+  'يرفع الله الذين آمنوا منكم والذين أوتوا العلم درجات',
+  'الدقة في البيانات أمانة، والتنظيم عون على الخدمة',
+  'التعليم رسالة، والإدارة خدمة لها',
+  'أهلاً بكم في نظام معهد الإحسان لإعداد العلماء'
+];
+
+function setTicker() {
+  const line = MESSAGES.map(m => `<span>${m}</span><span class="sep">◆</span>`).join('');
+  $('tickerText').innerHTML = line + line;
+}
+
+async function doLogin() {
+  const { error } = await db.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pass').value });
+  if (error) { $('loginMsg').textContent = 'البريد أو كلمة المرور غير صحيحة'; return; }
+  start();
+}
+
+async function doLogout() {
+  await db.auth.signOut();
+  location.reload();
+}
+
+async function start() {
+  const { data: { user } } = await db.auth.getUser();
+  const { data: prof, error } = await db.from('profiles').select('full_name, role').eq('id', user.id).single();
+  if (error || !prof || !ROLE_TILES[prof.role]) {
+    $('loginMsg').textContent = 'هذا الحساب غير مرتبط بدور في النظام';
+    await db.auth.signOut();
+    return;
+  }
+  $('login').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('who').textContent = `مرحباً، ${prof.full_name}`;
+  $('roleName').textContent = ROLE_NAMES[prof.role];
+  setTicker();
+  renderTiles(prof.role);
+  if (STATS_ROLES.includes(prof.role)) loadStats();
+}
+
+function renderTiles(role) {
+  $('grid').innerHTML = ROLE_TILES[role].map((key, i) => {
+    const t = TILES[key];
+    const delay = (i * 0.07).toFixed(2);
+    if (t.soon) {
+      return `<div class="tile soon" style="animation-delay:${delay}s">
+        <span class="badge">قريباً</span>
+        <span class="ic">⏳</span><div class="tt">${t.t}</div><div class="ds">${t.d}</div></div>`;
+    }
+    return `<a class="tile ${t.c}" href="${t.href}" style="animation-delay:${delay}s">
+      <span class="ic">${iconFor(key)}</span><div class="tt">${t.t}</div><div class="ds">${t.d}</div></a>`;
+  }).join('');
+}
+
+function iconFor(key) {
+  return {
+    register:'📝', students:'👥', classes:'🏫', generate:'🔄', import:'📥',
+    cashier:'💰', unpaid:'⚠️', finance:'📊', receipts:'🧾', expenses:'💳',
+    exam_cards:'🎫', exam_sched:'🗓️'
+  }[key] || '📌';
+}
+
+async function loadStats() {
+  const [total, boarders, pending, legacy, classes] = await Promise.all([
+    db.from('students').select('id', { count: 'exact', head: true }),
+    db.from('students').select('id', { count: 'exact', head: true }).eq('is_boarder', true),
+    db.from('students').select('id', { count: 'exact', head: true }).eq('status', 'pending_fee'),
+    db.from('students').select('id', { count: 'exact', head: true }).eq('is_legacy', true),
+    db.from('classes').select('id', { count: 'exact', head: true })
+  ]);
+  const items = [
+    ['إجمالي الطلاب', total.count], ['الداخليون', boarders.count],
+    ['بانتظار تسديد القبول', pending.count], ['طلاب سابقون', legacy.count],
+    ['عدد الفصول', classes.count]
+  ];
+  $('statsWrap').innerHTML = items.map(([t, n], i) =>
+    `<div class="stat" style="animation-delay:${i * 0.1}s"><div class="n" data-n="${n || 0}">0</div><div class="t">${t}</div></div>`
+  ).join('');
+  $('statsWrap').classList.remove('hidden');
+  countUp();
+}
+
+function countUp() {
+  document.querySelectorAll('.stat .n').forEach(el => {
+    const target = Number(el.dataset.n) || 0;
+    const steps = 40;
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      el.textContent = Math.round(target * i / steps).toLocaleString('en');
+      if (i >= steps) clearInterval(timer);
+    }, 25);
+  });
+}
+
+db.auth.getSession().then(({ data }) => { if (data.session) start(); });
+</script>
+</body>
+</html>
