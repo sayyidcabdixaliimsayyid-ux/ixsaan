@@ -190,7 +190,18 @@ const ROLE_TILES = {
   student_affairs:   ['students','classes','certs','attendance','contact'],
   exams:             ['students','classes','exam_cards','exam_sched']
 };
-const STATS_ROLES = ['institute_general','institute_manager','org_manager','exec_manager'];
+ROLE_NAMES.teacher = 'معلم';
+TILES.attendance = {t:'الحضور والغياب', d:'سجل الحضور والغياب لكل طالب', c:'c-blue', href:'attendance.html'};
+TILES.timetable  = {t:'الجدول الدراسي', d:'عرض الجدول، وتحضير حصص المعلمين', c:'c-green', href:'timetable.html'};
+ICONS.timetable = '🗓️';
+ROLE_TILES.teacher = ['timetable'];
+for (const r of Object.keys(ROLE_TILES)) {
+  if (!ROLE_TILES[r].includes('timetable')) ROLE_TILES[r].push('timetable');
+}
+['secretary','institute_general','institute_manager','student_affairs','org_manager','exec_manager'].forEach(r => {
+  if (!ROLE_TILES[r].includes('attendance')) ROLE_TILES[r].push('attendance');
+});
+  const STATS_ROLES = ['institute_general','institute_manager','org_manager','exec_manager'];
 
 const MESSAGES = [
   'يرفع الله الذين آمنوا منكم والذين أوتوا العلم درجات',
