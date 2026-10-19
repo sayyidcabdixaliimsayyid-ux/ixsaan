@@ -44,7 +44,7 @@ tr.clickable:hover td{background:#fff3d6}
 <div id="panel" class="hidden">
   <div class="note" id="who"></div>
   <div>
-    <button id="btn-classes" onclick="show('classes')">الفصول</button>
+   <a href="dashboard.html" style="background:#f7941d;color:#3a2400;text-decoration:none;padding:8px 14px;border-radius:8px;margin:4px;display:inline-block">لوحة التحكم</a> <button id="btn-classes" onclick="show('classes')">الفصول</button>
     <button id="btn-students" onclick="show('students')">الطلاب</button>
     <button id="btn-cashier" onclick="show('cashier')">أمين الصندوق</button>
     <button class="s" onclick="doLogout()">خروج</button>
@@ -227,8 +227,8 @@ async function start() {
   $('classForm').classList.toggle('hidden', !ME.editClasses);
   $('regRow').classList.toggle('hidden', !ME.register);
   await loadClasses();
-  show(ME.tabs[0]);
-}
+const wanted = new URLSearchParams(location.search).get('tab');
+show(ME.tabs.includes(wanted) ? wanted : ME.tabs[0]);}
 
 function refreshAll() {
   loadClasses();
