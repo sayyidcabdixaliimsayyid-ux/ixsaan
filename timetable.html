@@ -87,7 +87,7 @@ const uq=a=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y,'ar'))
 function ensure(){if(!TL)TL=uq([...G.flat(2).map(c=>c[1]),...ASG.map(a=>a.t)]);if(!SL)SL=uq([...G.flat(2).map(c=>c[0]),...ASG.map(a=>a.s)])}
 const pack=()=>JSON.stringify({g:G,cl:CLASSES,a:ASG,tl:TL,sl:SL});
 function unpack(j){const o=JSON.parse(j);if(Array.isArray(o)){G=o;TL=SL=null}else{G=o.g;CLASSES=o.cl;ASG=o.a||[];TL=o.tl||null;SL=o.sl||null}ensure()}
-let canWrite=false, meName='';
+let canWrite=false, meName='', meRole='', meKey='';
 const TT_ID='tt_1448_s2';
 const WRITE_ROLES=['institute_general','institute_manager','exec_manager'];
 async function persist(){
@@ -113,7 +113,7 @@ function teacherView(){if(!tsel)return '<tr><td style="padding:24px">اختر م
   return `<td class="ls">${hits.join('')}</td>`}).join('')+'</tr>'});
  return h+`<tr><td colspan="9" style="padding:8px">عدد الحصص الأسبوعية (حسب الفصول): ${n}</td></tr>`}
 function render(){
- $('views').innerHTML=[['day','حسب اليوم'],['class','حسب الفصل'],['teacher','حسب المعلم'],['setup','⚙ الإعدادات والتوزيع']].map(v=>`<button class="tab ${view===v[0]?'on':''}" data-v="${v[0]}">${v[1]}</button>`).join('');
+ $('views').innerHTML=[['day','حسب اليوم'],['class','حسب الفصل'],['teacher','حسب المعلم'],['setup','⚙ الإعدادات والتوزيع']].filter(x=>x[0]!=='setup'||canWrite).map(v=>`<button class="tab ${view===v[0]?'on':''}" data-v="${v[0]}">${v[1]}</button>`).join('');
  const sel=$('sel'),sub=$('sub');sel.style.display='none';sub.innerHTML='';
  if(view==='day'){sub.innerHTML=DAYS.map((n,i)=>`<button class="tab ${day===i?'on':''}" data-day="${i}">${n}</button>`).join('');
   sel.style.display='';sel.innerHTML='<option value="">تمييز معلم…</option>'+teachers().map(t=>`<option ${t===hlT?'selected':''}>${esc(t)}</option>`).join('')}
@@ -225,7 +225,12 @@ db=supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co','sb_publisha
 // الصلاحيات: الجميع يرى الجدول حسب دوره، والتعديل للمديرين ومدير تنفيذ المنظمة فقط
 for(const k of Object.keys(A)){const f=A[k];A[k]=function(...x){if(!canWrite){toast('للقراءة فقط: لا تملك صلاحية التعديل');return}return f.apply(this,x)}}
 const _openEd=openEd;
-openEd=function(d,r,p){if(!canWrite){toast('للقراءة فقط');return}_openEd(d,r,p)};
+openEd=function(d,r,p){
+  if(canWrite) return _openEd(d,r,p);
+  const cell=G[d][r][p];
+  if(meKey && cell[1]===meKey){ location.href='attendance.html?d='+d+'&r='+r+'&p='+p; return }
+  toast(meRole==='teacher' ? 'هذه الحصة لمعلم آخر' : 'للقراءة فقط');
+};
 
 async function ttLogin(){
   const {error}=await db.auth.signInWithPassword({email:$('gEmail').value.trim(),password:$('gPass').value});
@@ -235,14 +240,17 @@ async function ttLogin(){
 async function enter(){
   const {data:{user}}=await db.auth.getUser();
   if(!user) return;
-  const {data:prof,error}=await db.from('profiles').select('full_name,role').eq('id',user.id).single();
+  const {data:prof,error}=await db.from('profiles').select('full_name,role,teacher_key').eq('id',user.id).single();
   if(error||!prof){$('gateMsg').textContent='هذا الحساب غير مرتبط بأي دور في النظام';await db.auth.signOut();return}
   meName=prof.full_name;
   canWrite=WRITE_ROLES.includes(prof.role);
+  meRole=prof.role; meKey=prof.teacher_key||'';
   const {data:row,error:e2}=await db.from('timetables').select('data,updated_by,updated_at').eq('id',TT_ID).maybeSingle();
-  if(e2){$('gateMsg').textContent='تعذّر تحميل الجدول: '+e2.message;return}
+  if(e2){toast('تعذّر تحميل المحفوظ، يُعرض الجدول الأصلي')}
   if(row&&row.data){try{unpack(JSON.stringify(row.data))}catch(err){}}
   ensure();
+  if(!canWrite && meKey){view='teacher';tsel=meKey}
+  if(view==='setup'&&!canWrite)view='day';
   $('gate').style.display='none';
   document.body.classList.toggle('ro',!canWrite);
   $('roBadge').textContent = canWrite ? ('صلاحية التعديل: '+prof.full_name) : 'للقراءة فقط';
