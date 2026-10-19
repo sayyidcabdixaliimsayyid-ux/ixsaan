@@ -30,7 +30,7 @@ tr.clickable:hover td{background:#fff3d6}
 .btn{display:inline-block;background:#1b6b3a;color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;margin:4px}
 </style>
 </head>
-<body>
+<body style="visibility:hidden">
 <h1>إدارة معهد الإحسان لإعداد العلماء</h1>
 
 <div id="loginBox" class="card">
@@ -52,8 +52,7 @@ tr.clickable:hover td{background:#fff3d6}
   <div id="msg" class="msg"></div>
 
   <!-- الفصول -->
-  <div id="classes" class="card">
-    <div id="classForm">
+<div id="classes" class="card hidden">    <div id="classForm">
       <h3>إضافة فصل</h3>
       <input id="cName" placeholder="اسم الفصل">
       <input id="cLevel" placeholder="المرحلة (تمهيد أو تأسيس)">
@@ -548,7 +547,9 @@ async function payAdmission(sid) {
   loadCashier();
 }
 
-db.auth.getSession().then(({ data }) => { if (data.session) start(); });
-</script>
+db.auth.getSession().then(async ({ data }) => {
+  if (data.session) await start();
+  document.body.style.visibility = 'visible';
+});</script>
 </body>
 </html>
