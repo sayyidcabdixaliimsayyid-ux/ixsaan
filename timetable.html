@@ -87,7 +87,7 @@ const uq=a=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y,'ar'))
 function ensure(){if(!TL)TL=uq([...G.flat(2).map(c=>c[1]),...ASG.map(a=>a.t)]);if(!SL)SL=uq([...G.flat(2).map(c=>c[0]),...ASG.map(a=>a.s)])}
 const pack=()=>JSON.stringify({g:G,cl:CLASSES,a:ASG,tl:TL,sl:SL});
 function unpack(j){const o=JSON.parse(j);if(Array.isArray(o)){G=o;TL=SL=null}else{G=o.g;CLASSES=o.cl;ASG=o.a||[];TL=o.tl||null;SL=o.sl||null}ensure()}
-let canWrite=false, meName='', meRole='', meKey='';
+let canWrite=false, meName='', meRole='', meKeys=[];
 const TT_ID='tt_1448_s2';
 const WRITE_ROLES=['institute_general','institute_manager','exec_manager'];
 async function persist(){
@@ -109,7 +109,7 @@ function classView(){let h=head('اليوم').replace('اليوم','اليوم')
 function teacherView(){if(!tsel)return '<tr><td style="padding:24px">اختر معلماً من القائمة</td></tr>';
  let h=head('اليوم'),n=0;
  DAYS.forEach((dn,d)=>{h+=`<tr><td class="cl">${dn}</td>`+PER.map(p=>{if(p[1]<0)return '<td class="br"></td>';
-  const hits=[];CLASSES.forEach((c,r)=>{const x=G[d][r][p[1]];if(x[1]===tsel){hits.push(`<div data-d="${d}" data-r="${r}" data-p="${p[1]}" style="cursor:pointer"><b>${esc(x[0])||'—'}</b> <i>${c}</i></div>`);n++}});
+  const hits=[];CLASSES.forEach((c,r)=>{const x=G[d][r][p[1]];if(x[1]===tsel||(tsel===meKeys[0]&&meKeys.includes(x[1]))){hits.push(`<div data-d="${d}" data-r="${r}" data-p="${p[1]}" style="cursor:pointer"><b>${esc(x[0])||'—'}</b> <i>${c}</i></div>`);n++}});
   return `<td class="ls">${hits.join('')}</td>`}).join('')+'</tr>'});
  return h+`<tr><td colspan="9" style="padding:8px">عدد الحصص الأسبوعية (حسب الفصول): ${n}</td></tr>`}
 function render(){
@@ -228,7 +228,7 @@ const _openEd=openEd;
 openEd=function(d,r,p){
   if(canWrite) return _openEd(d,r,p);
   const cell=G[d][r][p];
-  if(meKey && cell[1]===meKey){ location.href='attendance.html?d='+d+'&r='+r+'&p='+p; return }
+  if(meKeys.includes(cell[1])){ location.href='attendance.html?d='+d+'&r='+r+'&p='+p; return }
   toast(meRole==='teacher' ? 'هذه الحصة لمعلم آخر' : 'للقراءة فقط');
 };
 
@@ -240,16 +240,16 @@ async function ttLogin(){
 async function enter(){
   const {data:{user}}=await db.auth.getUser();
   if(!user) return;
-  const {data:prof,error}=await db.from('profiles').select('full_name,role,teacher_key').eq('id',user.id).single();
+  const {data:prof,error}=await db.from('profiles').select('full_name,role,teacher_keys').eq('id',user.id).single();
   if(error||!prof){$('gateMsg').textContent='هذا الحساب غير مرتبط بأي دور في النظام';await db.auth.signOut();return}
   meName=prof.full_name;
   canWrite=WRITE_ROLES.includes(prof.role);
-  meRole=prof.role; meKey=prof.teacher_key||'';
+  meRole=prof.role; meKeys=prof.teacher_keys||[];
   const {data:row,error:e2}=await db.from('timetables').select('data,updated_by,updated_at').eq('id',TT_ID).maybeSingle();
   if(e2){toast('تعذّر تحميل المحفوظ، يُعرض الجدول الأصلي')}
   if(row&&row.data){try{unpack(JSON.stringify(row.data))}catch(err){}}
   ensure();
-  if(!canWrite && meKey){view='teacher';tsel=meKey}
+  if(!canWrite && meKeys.length){view='teacher';tsel=meKeys[0]}
   if(view==='setup'&&!canWrite)view='day';
   $('gate').style.display='none';
   document.body.classList.toggle('ro',!canWrite);

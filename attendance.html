@@ -108,7 +108,7 @@ async function login(){
 async function enter(){
   const {data:{user}}=await db.auth.getUser();
   if(!user) return;
-  const {data:prof,error}=await db.from('profiles').select('full_name,role,teacher_key').eq('id',user.id).single();
+  const {data:prof,error}=await db.from('profiles').select('full_name,role,teacher_keys').eq('id',user.id).single();
   if(error||!prof||!READ_ROLES.includes(prof.role)){
     $('gateMsg').textContent='لا تملك صلاحية الوصول إلى هذه الصفحة';
     await db.auth.signOut();return;
@@ -131,12 +131,12 @@ async function openSession(d,r,p){
   const {data:row,error}=await db.from('timetables').select('data').eq('id',TT_ID).maybeSingle();
   if(error||!row){$('sMsg').textContent='تعذّر تحميل الجدول';return}
   const T=row.data, cell=T.g[d][r][p], className=T.cl[r], subject=cell[0], teacher=cell[1];
-  if(teacher!==me.teacher_key&&!SAVE_ROLES.includes(me.role)){
+  if(!(me.teacher_keys||[]).includes(teacher)&&!SAVE_ROLES.includes(me.role)){
     $('sTitle').textContent='هذه الحصة لمعلم آخر';
     $('saveBtn').disabled=true;return;
   }
   $('sTitle').textContent=`${className} — ${subject} — ${DAYS[d]} ${PER_LABEL[p]} — المعلم: ${teacher}`;
-  const canSave=SAVE_ROLES.includes(me.role)||teacher===me.teacher_key;
+  const canSave=SAVE_ROLES.includes(me.role)||(me.teacher_keys||[]).includes(teacher);
   $('saveBtn').disabled=!canSave;
   window.S={d,p,className,subject,teacher};
   $('sDate').value=today();
