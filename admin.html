@@ -12,13 +12,13 @@ input,select{font:inherit;padding:8px;border:1px solid #e8d3a2;border-radius:8px
 button{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;margin:4px}
 button.s{background:#f7941d;color:#3a2400}
 button:disabled{opacity:.4;cursor:default}
-table{border-collapse:collapse;width:100%;min-width:520px}
+table{border-collapse:collapse;width:100%;min-width:560px}
 th,td{border-bottom:1px solid #e8d3a2;padding:6px;text-align:start;font-size:14px}
 th{background:#fbb040}
 .tw{overflow-x:auto}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}
 .hidden{display:none!important}
-.ok{color:#1b6b3a;font-weight:700}.bad{color:#b3261e;font-weight:700}
+.ok{color:#1b6b3a;font-weight:700}.bad{color:#b3261e;font-weight:700}.mid{color:#8a6100;font-weight:700}
 .msg{color:#b3261e;min-height:22px}
 .note{color:#6b5a3e;font-size:14px}
 .summary{font-weight:700;margin:10px 0}
@@ -45,21 +45,19 @@ th{background:#fbb040}
   </div>
   <div id="msg" class="msg"></div>
 
-  <!-- الفصول -->
   <div id="classes" class="card">
     <div id="classForm">
       <h3>إضافة فصل</h3>
       <input id="cName" placeholder="اسم الفصل">
-      <input id="cLevel" placeholder="المستوى (اختياري)">
+      <input id="cLevel" placeholder="المرحلة (تمهيد أو تأسيس)">
       <button onclick="addClass()">إضافة</button>
     </div>
     <div class="tw"><table>
-      <tr><th>الفصل</th><th>المستوى</th><th>عدد الطلاب</th><th></th></tr>
+      <tr><th>الفصل</th><th>المرحلة</th><th>عدد الطلاب</th><th></th></tr>
       <tbody id="classList"></tbody>
     </table></div>
   </div>
 
-  <!-- الطلاب -->
   <div id="students" class="card hidden">
     <div id="studentForm">
       <h3>تسجيل طالب</h3>
@@ -67,14 +65,15 @@ th{background:#fbb040}
       <input id="sGuard" placeholder="اسم ولي الأمر">
       <input id="sPhone" placeholder="الهاتف">
       <select id="sClass"></select>
-      <label><input type="checkbox" id="sAdm"> اجتاز المقابلة</label>
+      <label><input type="checkbox" id="sBoarder"> طالب داخلي (20,000 شلن شهرياً)</label>
+      <label id="legacyLabel" class="hidden"><input type="checkbox" id="sLegacy"> طالب سابق (معفى من رسوم القبول)</label>
       <button onclick="addStudent()">حفظ</button>
     </div>
     <div class="row">
       <input id="sSearch" placeholder="بحث بالاسم أو ولي الأمر أو الهاتف" oninput="debounced(sSearchNow)" style="min-width:260px">
     </div>
     <div class="tw"><table>
-      <tr><th>الطالب</th><th>ولي الأمر</th><th>الهاتف</th><th>الفصل</th><th>مقبول</th><th></th></tr>
+      <tr><th>الطالب</th><th>ولي الأمر</th><th>الهاتف</th><th>الفصل</th><th>داخلي</th><th>النوع</th><th></th></tr>
       <tbody id="studentList"></tbody>
     </table></div>
     <div class="row">
@@ -84,7 +83,6 @@ th{background:#fbb040}
     </div>
   </div>
 
-  <!-- أمين الصندوق -->
   <div id="cashier" class="card hidden">
     <h3>أمين الصندوق</h3>
     <div class="row">
@@ -94,7 +92,7 @@ th{background:#fbb040}
     </div>
     <div class="summary" id="summary"></div>
     <div class="tw"><table>
-      <tr><th>الطالب</th><th>الفصل</th><th>المسدد</th><th>المتبقي</th><th>الحالة</th><th></th></tr>
+      <tr><th>الطالب</th><th>الفصل</th><th>الرسوم الشهرية</th><th>حالة الشهر</th><th>رسوم القبول</th><th></th></tr>
       <tbody id="cashList"></tbody>
     </table></div>
     <div class="row">
@@ -109,7 +107,9 @@ th{background:#fbb040}
 <script>
 const SUPABASE_URL = 'https://tmhfjnqujgmwayktsbnd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL';
-const FEE = 20;
+const STD_FEE = 9000;     // الرسوم الشهرية العادية بالشلن
+const BOARD_FEE = 20000;  // الداخلي (يشمل الرسوم العادية)
+const ADM_FEE = 2000;     // رسوم القبول لمرة واحدة للطالب الجديد
 const PAGE = 50;
 
 const ROLE_NAMES = {
@@ -119,14 +119,14 @@ const ROLE_NAMES = {
   student_affairs: 'شؤون الطلاب', exams: 'قسم الامتحانات'
 };
 const ROLES = {
-  org_manager:       { tabs: ['classes','students','cashier'], seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: false },
-  exec_manager:      { tabs: ['classes','students','cashier'], seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: false },
-  institute_general: { tabs: ['classes','students','cashier'], seePay: true,  editClasses: true,  editStudents: true,  delStudents: true,  pay: true  },
-  institute_manager: { tabs: ['classes','students','cashier'], seePay: true,  editClasses: true,  editStudents: true,  delStudents: true,  pay: false },
-  secretary:         { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: true,  delStudents: false, pay: false },
-  cashier:           { tabs: ['students','cashier'],           seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: true  },
-  student_affairs:   { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: true,  delStudents: false, pay: false },
-  exams:             { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: false, delStudents: false, pay: false }
+  org_manager:       { tabs: ['classes','students','cashier'], seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: false, legacy: false },
+  exec_manager:      { tabs: ['classes','students','cashier'], seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: false, legacy: false },
+  institute_general: { tabs: ['classes','students','cashier'], seePay: true,  editClasses: true,  editStudents: true,  delStudents: true,  pay: true,  legacy: true  },
+  institute_manager: { tabs: ['classes','students','cashier'], seePay: true,  editClasses: true,  editStudents: true,  delStudents: true,  pay: false, legacy: true  },
+  secretary:         { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: true,  delStudents: false, pay: false, legacy: false },
+  cashier:           { tabs: ['students','cashier'],           seePay: true,  editClasses: false, editStudents: false, delStudents: false, pay: true,  legacy: false },
+  student_affairs:   { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: true,  delStudents: false, pay: false, legacy: false },
+  exams:             { tabs: ['classes','students'],           seePay: false, editClasses: false, editStudents: false, delStudents: false, pay: false, legacy: false }
 };
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -139,18 +139,20 @@ let dt;
 const $ = id => document.getElementById(id);
 const v = id => $(id).value.trim();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money = n => n.toLocaleString('en') + ' $';
+const money = n => Number(n).toLocaleString('en') + ' شلن';
 const msg = t => { $('msg').textContent = t || ''; };
 const pages = n => Math.max(1, Math.ceil(n / PAGE));
 const className = id => { const c = classes.find(x => x.id === id); return c ? c.name : '—'; };
 function debounced(fn) { clearTimeout(dt); dt = setTimeout(fn, 400); }
 
-// بحث في قاعدة البيانات مباشرة، لا في المتصفح
 function searchFilter(q) {
   const t = (q || '').replace(/[%,()]/g, ' ').trim();
   if (!t) return null;
   return `full_name.ilike.%${t}%,guardian_name.ilike.%${t}%,phone.ilike.%${t}%`;
 }
+
+// الرسوم حسب نوع الطالب
+const monthlyDue = s => s.is_boarder ? BOARD_FEE : STD_FEE;
 
 $('month').value = new Date().toISOString().slice(0, 7);
 $('month').onchange = () => { cState.p = 0; loadCashier(); };
@@ -189,6 +191,7 @@ async function start() {
   ['classes', 'students', 'cashier'].forEach(t => $('btn-' + t).classList.toggle('hidden', !ME.tabs.includes(t)));
   $('classForm').classList.toggle('hidden', !ME.editClasses);
   $('studentForm').classList.toggle('hidden', !ME.editStudents);
+  $('legacyLabel').classList.toggle('hidden', !ME.legacy);
 
   await loadClasses();
   show(ME.tabs[0]);
@@ -256,6 +259,11 @@ async function loadStudents() {
   renderStudents();
 }
 
+function studentType(s) {
+  if (s.is_legacy) return 'طالب سابق';
+  return 'طالب جديد';
+}
+
 function renderStudents() {
   $('sInfo').textContent = `${sCount} طالب — صفحة ${sState.p + 1} من ${pages(sCount)}`;
   $('studentList').innerHTML = sRows.length
@@ -265,14 +273,14 @@ function renderStudents() {
               ${classes.map(c => `<option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
              </select>`
           : esc(className(s.class_id));
-        const adm = ME.editStudents
-          ? `<input type="checkbox" ${s.admitted ? 'checked' : ''} onchange="toggleAdm(${s.id}, this.checked)">`
-          : (s.admitted ? 'نعم' : 'لا');
+        const boarder = ME.editStudents
+          ? `<input type="checkbox" ${s.is_boarder ? 'checked' : ''} onchange="toggleBoarder(${s.id}, this.checked)">`
+          : (s.is_boarder ? 'نعم' : 'لا');
         const del = ME.delStudents ? `<button class="s" onclick="delStudent(${s.id})">حذف</button>` : '';
         return `<tr><td>${esc(s.full_name)}</td><td>${esc(s.guardian_name)}</td><td>${esc(s.phone)}</td>
-          <td>${cls}</td><td>${adm}</td><td>${del}</td></tr>`;
+          <td>${cls}</td><td>${boarder}</td><td>${studentType(s)}</td><td>${del}</td></tr>`;
       }).join('')
-    : '<tr><td colspan="6">لا توجد نتائج</td></tr>';
+    : '<tr><td colspan="7">لا توجد نتائج</td></tr>';
 }
 
 function sSearchNow() { sState.q = v('sSearch'); sState.p = 0; loadStudents(); }
@@ -285,16 +293,19 @@ function sPage(d) {
 async function addStudent() {
   const full_name = v('sName');
   if (!full_name) return msg('أدخل اسم الطالب');
-  const { error } = await db.from('students').insert({
+  const row = {
     full_name,
     guardian_name: v('sGuard') || null,
     phone: v('sPhone') || null,
     class_id: Number($('sClass').value) || null,
-    admitted: $('sAdm').checked
-  });
+    is_boarder: $('sBoarder').checked,
+    is_legacy: ME.legacy ? $('sLegacy').checked : false
+  };
+  const { error } = await db.from('students').insert(row);
   if (error) return msg(error.message);
   ['sName', 'sGuard', 'sPhone'].forEach(id => $(id).value = '');
-  $('sAdm').checked = false;
+  $('sBoarder').checked = false;
+  if (ME.legacy) $('sLegacy').checked = false;
   sState.p = 0;
   refreshAll();
 }
@@ -305,8 +316,8 @@ async function moveStudent(id, classId) {
   refreshAll();
 }
 
-async function toggleAdm(id, val) {
-  const { error } = await db.from('students').update({ admitted: val }).eq('id', id);
+async function toggleBoarder(id, val) {
+  const { error } = await db.from('students').update({ is_boarder: val }).eq('id', id);
   if (error) return msg(error.message);
   refreshAll();
 }
@@ -333,31 +344,54 @@ async function loadCashier() {
   const ids = cRows.map(s => s.id);
   cPays = [];
   if (ids.length) {
-    const { data: pd, error: pe } = await db.from('payments').select('*').eq('month', month).in('student_id', ids);
+    // دفعات الشهر المختار، ودفعات القبول لأي شهر
+    const { data: pd, error: pe } = await db.from('payments').select('*')
+      .in('student_id', ids).or(`month.eq.${month},kind.eq.admission`);
     if (pe) return msg(pe.message);
     cPays = pd;
   }
   renderCashier();
 }
 
+const monthPaid = (sid, month) => cPays.some(p => p.student_id === sid && p.kind === 'monthly' && p.month === month);
+const admPaid = sid => cPays.some(p => p.student_id === sid && p.kind === 'admission');
+const admDue = s => (!s.is_legacy && !admPaid(s.id));
+
 function renderCashier() {
-  const paidOf = sid => cPays.filter(p => p.student_id === sid).reduce((a, p) => a + Number(p.amount), 0);
-  let req = 0, paid = 0;
+  const month = $('month').value;
+  let reqM = 0, paidM = 0, admOwed = 0;
 
   $('cashList').innerHTML = cRows.length
     ? cRows.map(s => {
-        const pd = paidOf(s.id), bal = Math.max(FEE - pd, 0);
-        req += FEE; paid += Math.min(pd, FEE);
-        const btn = ME.pay ? `<button onclick="pay(${s.id})">تسجيل دفعة</button>` : '';
+        const due = monthlyDue(s);
+        const paid = monthPaid(s.id, month);
+        reqM += due; if (paid) paidM += due;
+
+        const mStatus = paid
+          ? '<span class="ok">مسدد</span>'
+          : '<span class="bad">غير مسدد</span>';
+        const mBtn = (ME.pay && !paid)
+          ? `<button onclick="payMonthly(${s.id})">دفع ${money(due)}</button>` : '';
+
+        let aStatus, aBtn = '';
+        if (s.is_legacy) {
+          aStatus = '<span class="ok">معفى (طالب سابق)</span>';
+        } else if (admPaid(s.id)) {
+          aStatus = '<span class="ok">مدفوع</span>';
+        } else {
+          aStatus = `<span class="mid">مستحق ${money(ADM_FEE)}</span>`;
+          admOwed += ADM_FEE;
+          if (ME.pay) aBtn = `<button class="s" onclick="payAdmission(${s.id})">دفع القبول</button>`;
+        }
+
         return `<tr><td>${esc(s.full_name)}</td><td>${esc(className(s.class_id))}</td>
-          <td>${money(pd)}</td><td>${money(bal)}</td>
-          <td class="${bal ? 'bad' : 'ok'}">${bal ? 'غير مسدد كاملاً' : 'مسدد'}</td>
-          <td>${btn}</td></tr>`;
+          <td>${money(due)}${s.is_boarder ? ' (داخلي)' : ''}</td>
+          <td>${mStatus}</td><td>${aStatus}</td><td>${mBtn} ${aBtn}</td></tr>`;
       }).join('')
     : '<tr><td colspan="6">لا توجد نتائج</td></tr>';
 
   $('summary').textContent =
-    `في هذه الصفحة — المطلوب: ${money(req)} | المسدد: ${money(paid)} | المتبقي: ${money(req - paid)}`;
+    `في هذه الصفحة — المطلوب للشهر: ${money(reqM)} | المسدد: ${money(paidM)} | المتبقي: ${money(reqM - paidM)} | رسوم قبول مستحقة: ${money(admOwed)}`;
   $('cInfo').textContent = `${cCount} طالب — صفحة ${cState.p + 1} من ${pages(cCount)}`;
 }
 
@@ -368,16 +402,23 @@ function cPage(d) {
   cState.p = np; loadCashier();
 }
 
-async function pay(sid) {
+// الدفع كامل فقط، لا دفع جزئي
+async function payMonthly(sid) {
   const month = $('month').value;
   const s = cRows.find(x => x.id === sid);
-  const already = cPays.filter(p => p.student_id === sid).reduce((a, p) => a + Number(p.amount), 0);
-  const rest = Math.max(FEE - already, 0);
-  const input = prompt(`المبلغ المدفوع عن ${s.full_name} لشهر ${month}`, rest);
-  const amount = Number(input);
-  if (!input || !(amount > 0)) return;
-  const { error } = await db.from('payments').insert({ student_id: sid, month, amount });
-  if (error) return msg(error.message);
+  const amount = monthlyDue(s);
+  if (!confirm(`تأكيد دفع ${money(amount)} عن ${s.full_name} لشهر ${month}؟`)) return;
+  const { error } = await db.from('payments').insert({ student_id: sid, month, amount, kind: 'monthly' });
+  if (error) return msg(error.code === '23505' ? 'هذا الشهر مدفوع مسبقاً' : error.message);
+  loadCashier();
+}
+
+async function payAdmission(sid) {
+  const month = $('month').value;
+  const s = cRows.find(x => x.id === sid);
+  if (!confirm(`تأكيد دفع رسوم القبول ${money(ADM_FEE)} عن ${s.full_name}؟`)) return;
+  const { error } = await db.from('payments').insert({ student_id: sid, month, amount: ADM_FEE, kind: 'admission' });
+  if (error) return msg(error.code === '23505' ? 'رسوم القبول مدفوعة مسبقاً' : error.message);
   loadCashier();
 }
 
