@@ -167,7 +167,12 @@ const TILES = {
   exam_cards: { t:'بطاقات الامتحان',           d:'لمن سدد الرسوم كاملة',             soon:true },
   exam_sched: { t:'جداول الاختبارات',          d:'توزيع القاعات والطلاب',           soon:true }
 };
-
+// توجيه كل زر إلى القسم المناسب داخل صفحة الإدارة
+TILES.students.href = 'admin.html?tab=students';
+TILES.classes.href  = 'admin.html?tab=classes';
+TILES.cashier.href  = 'admin.html?tab=cashier';
+TILES.unpaid.href   = 'admin.html?tab=cashier';
+TILES.finance.href  = 'admin.html?tab=cashier';
 const ICONS = {
   register:'📝', students:'👥', classes:'🏫', generate:'🔄', import:'📥',
   cashier:'💰', unpaid:'⚠️', finance:'📊', receipts:'🧾', expenses:'💳',
