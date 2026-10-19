@@ -10,16 +10,22 @@ h1{color:#1b6b3a;font-size:22px}
 .card{background:#fff;border:1px solid #e8d3a2;border-radius:12px;padding:14px;margin:10px 0}
 input{font:inherit;padding:8px;border:1px solid #e8d3a2;border-radius:8px;margin:4px;max-width:100%}
 button{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;margin:4px}
+button.s{background:#f7941d;color:#3a2400}
 button:disabled{opacity:.4}
 table{border-collapse:collapse;width:100%;min-width:440px}
 th,td{border-bottom:1px solid #e8d3a2;padding:6px;text-align:start;font-size:14px}
 th{background:#fbb040}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:#fff3d6}
+tr.clickable.active td{background:#ffe7a8;font-weight:700}
 .tw{overflow-x:auto}
 .hidden{display:none!important}
 .msg{color:#b3261e;min-height:22px;font-weight:700}
 .ok{color:#1b6b3a;font-weight:700}
 .note{color:#6b5a3e;font-size:14px}
 .warn{color:#8a6100;font-weight:700}
+.tag-new{color:#1b6b3a;font-weight:700}
+.tag-old{color:#6b5a3e}
 </style>
 </head>
 <body>
@@ -47,14 +53,29 @@ th{background:#fbb040}
   <div class="card hidden" id="previewCard">
     <h3>2) المعاينة</h3>
     <div id="summary" class="note"></div>
+    <p class="note">اضغط على اسم أي فصل لعرض طلابه.</p>
     <div class="tw"><table>
       <tr><th>الفصل</th><th>في الملف</th><th>مكرر داخل الملف</th><th>موجود مسبقاً</th><th>سيُضاف</th></tr>
       <tbody id="previewList"></tbody>
     </table></div>
     <div id="unknownBox" class="warn"></div>
-    <div class="row">
-      <button id="saveBtn" onclick="saveAll()">3) حفظ الطلاب في النظام</button>
+  </div>
+
+  <div class="card hidden" id="detailCard">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
+      <h3 id="detailTitle" style="margin:6px 0"></h3>
+      <button class="s" onclick="closeDetail()">إغلاق</button>
     </div>
+    <div id="detailSummary" class="note"></div>
+    <div class="tw"><table>
+      <tr><th>م</th><th>اسم الطالب</th><th>الحالة</th></tr>
+      <tbody id="detailList"></tbody>
+    </table></div>
+  </div>
+
+  <div class="card hidden" id="saveCard">
+    <h3>3) الحفظ</h3>
+    <button id="saveBtn" onclick="saveAll()">حفظ الطلاب في النظام</button>
   </div>
 </div>
 
@@ -85,145 +106,13 @@ const MAP = {
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let classIdByName = {}, plan = null;
+let lastFound = {}, lastExisting = new Set();
 
 const $ = id => document.getElementById(id);
 const norm = s => String(s ?? '').replace(/\s+/g, ' ').trim();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const msg = (t, ok) => { $('msg').textContent = t || ''; $('msg').className = ok ? 'ok' : 'msg'; };
 
-async function doLogin() {
-  const { error } = await db.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pass').value });
-  if (error) { $('loginMsg').textContent = 'البريد أو كلمة المرور غير صحيحة'; return; }
-  start();
-}
-
-async function start() {
-  const { data: { user } } = await db.auth.getUser();
-  const { data: prof } = await db.from('profiles').select('full_name, role').eq('id', user.id).single();
-  if (!prof || !ALLOWED.includes(prof.role)) {
-    $('loginMsg').textContent = 'هذه الصفحة للمدير العام والمدير فقط';
-    await db.auth.signOut();
-    return;
-  }
-  $('who').textContent = prof.full_name;
-  $('loginBox').classList.add('hidden');
-  $('panel').classList.remove('hidden');
-  const { data: classes, error } = await db.from('classes').select('id, name');
-  if (error) return msg(error.message);
-  classes.forEach(c => classIdByName[norm(c.name)] = c.id);
-}
-
-// اسم الفصل يوجد فوق عمود "اسم الطالب" بعدة صفوف
-function classAbove(rows, r, c) {
-  for (let rr = r - 1; rr >= Math.max(0, r - 4); rr--) {
-    for (let cc = c - 2; cc <= c + 2; cc++) {
-      const v = norm(rows[rr]?.[cc]);
-      if (v && v !== 'اسم الطالب' && !/^\d+$/.test(v)) return v;
-    }
-  }
-  return '';
-}
-
-function buildPlan(wb) {
-  const found = {}, unknown = [];
-  for (const sn of wb.SheetNames) {
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: '' });
-    for (let r = 0; r < rows.length; r++) {
-      for (let c = 0; c < rows[r].length; c++) {
-        if (norm(rows[r][c]) !== 'اسم الطالب') continue;
-        const raw = classAbove(rows, r, c);
-        const target = MAP[raw];
-        if (!target) { unknown.push(raw || '(بدون اسم)'); continue; }
-        const list = found[target] || (found[target] = []);
-        for (let rr = r + 1; rr < rows.length; rr++) {
-          const val = norm(rows[rr]?.[c]);
-          if (val && !/^\d+$/.test(val)) list.push(val);
-        }
-      }
-    }
-  }
-  return { found, unknown };
-}
-
-async function onFile(e) {
-  const f = e.target.files[0];
-  if (!f) return;
-  msg('جارٍ قراءة الملف...', true);
-  try {
-    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
-    const parsed = buildPlan(wb);
-    await renderPreview(parsed);
-    msg('', true);
-  } catch (err) {
-    msg('تعذّر قراءة الملف: ' + err.message);
-  }
-}
-
-async function renderPreview({ found, unknown }) {
-  const ids = Object.keys(found).map(n => classIdByName[norm(n)]).filter(Boolean);
-  const existing = new Set();
-  if (ids.length) {
-    const { data, error } = await db.from('students').select('full_name, class_id').in('class_id', ids).range(0, 9999);
-    if (error) return msg(error.message);
-    data.forEach(s => existing.add(s.class_id + '|' + norm(s.full_name)));
-  }
-
-  plan = [];
-  let totalAdd = 0, totalFile = 0;
-  const rowsHtml = Object.keys(found).map(target => {
-    const classId = classIdByName[norm(target)];
-    const names = found[target];
-    const unique = [...new Set(names)];
-    const dupes = names.length - unique.length;
-    if (!classId) {
-      return `<tr><td>${esc(target)}</td><td colspan="4" class="msg">هذا الفصل غير موجود في النظام</td></tr>`;
-    }
-    const toAdd = unique.filter(n => !existing.has(classId + '|' + n));
-    plan.push({ classId, target, names: toAdd });
-    totalAdd += toAdd.length; totalFile += names.length;
-    return `<tr><td>${esc(target)}</td><td>${names.length}</td><td>${dupes}</td>
-      <td>${unique.length - toAdd.length}</td><td><b>${toAdd.length}</b></td></tr>`;
-  }).join('');
-
-  $('previewList').innerHTML = rowsHtml;
-  $('summary').textContent = `إجمالي الأسماء في الملف: ${totalFile} — سيُضاف منها: ${totalAdd}`;
-  $('unknownBox').textContent = unknown.length
-    ? `تنبيه: أعمدة لم يُتعرف على فصولها: ${[...new Set(unknown)].join('، ')}` : '';
-  $('previewCard').classList.remove('hidden');
-  $('saveBtn').disabled = totalAdd === 0;
-}
-
-async function saveAll() {
-  if (!plan || !plan.length) return;
-  if (!confirm('حفظ الطلاب كطلاب سابقين (معفيين من رسوم القبول)؟')) return;
-  $('saveBtn').disabled = true;
-  let saved = 0;
-  try {
-    for (const block of plan) {
-      const rows = block.names.map(n => ({
-        full_name: n,
-        class_id: block.classId,
-        is_legacy: true,
-        is_boarder: false
-      }));
-      for (let i = 0; i < rows.length; i += 100) {
-        const chunk = rows.slice(i, i + 100);
-        const { error } = await db.from('students').insert(chunk);
-        if (error) throw new Error(`${block.target}: ${error.message}`);
-        saved += chunk.length;
-        msg(`جارٍ الحفظ... ${saved}`, true);
-      }
-    }
-    msg(`تم حفظ ${saved} طالباً بنجاح`, true);
-    $('previewCard').classList.add('hidden');
-    plan = null;
-  } catch (err) {
-    msg('توقف الحفظ: ' + err.message + ' — تم حفظ ' + saved + ' طالباً قبل الخطأ');
-    $('saveBtn').disabled = false;
-  }
-}
-
-db.auth.getSession().then(({ data }) => { if (data.session) start(); });
-</script>
-</body>
-</html>
+// النقر على أي صف فصل يفتح قائمة طلابه
+document.addEventListener('click', e => {
+  const tr =
