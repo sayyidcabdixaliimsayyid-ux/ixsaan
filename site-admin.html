@@ -69,7 +69,7 @@ textarea{font:inherit}
     <hr style="border:0;border-top:2px solid #e8d3a2;margin:16px 0">
     <h3 id="fFormTitle" style="margin:4px 0;color:#6b5a3e">إضافة فتوى جديدة</h3>
     <select id="fCat" style="width:100%;padding:9px;margin-top:8px;font:inherit;border:1px solid #e8d3a2;border-radius:8px">
-      <option>CAQIIDADA</option><option>SALAADDA</option><option>DAHAARADA</option><option>SOONKA</option><option>ZAKADA</option><option>XAJKA</option><option>ARRI</option><option>AHA QOYSKA</option><option>NIKAAXA</option><option>BAYCA IYO MUCAAMALAATKA</option>
+      <option>CAQIIDADA</option><option>SALAADDA</option><option>DAHAARADA</option><option>SOONKA</option><option>ZAKADA</option><option>XAJKA</option><option>ARRIMAHA QOYSKA</option><option>NIKAAXA</option><option>BAYCA IYO MUCAAMALAATKA</option>
     </select>
     <input id="fQ" placeholder="السؤال">
     <textarea id="fA" rows="5" placeholder="الجواب" style="width:100%;margin-top:8px;padding:9px;border:1px solid #e8d3a2;border-radius:8px;box-sizing:border-box"></textarea>
@@ -169,7 +169,7 @@ async function delFatwa(id){
   loadFatwas();
 }
 
-const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRI','AHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
+const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRIMAHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
 
 async function loadInbox(){
   const {data,error}=await db.from('fatwa_questions').select('*').eq('status','new').order('created_at',{ascending:true});

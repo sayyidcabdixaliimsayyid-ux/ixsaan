@@ -90,7 +90,7 @@ function addArt(i){const v=document.getElementById('af'+i).value.trim();if(v){S.
 function addSch(){const v=document.getElementById('ns').value.trim();if(v){S.sch.push(v);S.lib[S.sch.length-1]=[];go()}}
 function upl(i){const f=document.getElementById('fl'+i).files,a=document.getElementById('up'+i).value;if(f.length){const k=i+a;S.files[k]=(S.files[k]||[]).concat([...f].map(x=>x.name));go()}}
 let FV='', FAT_LIST=[];
-const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRI','AHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
+const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRIMAHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
 const qaCard=f=>`<div class="qa"><div class="qnum">#${f.id}</div><span class="tag">SUAAL</span><div class="qtext">${esc(f.question)}</div><hr class="qline"><span class="tag">JAWAAB</span><div class="atext">${esc(f.answer)}</div></div>`;
 function openAsk(){const f=document.getElementById('askForm');if(f){f.style.display='block';document.getElementById('qText').focus()}}
 async function sendQ(){
@@ -113,7 +113,7 @@ function fatPage(){
   }
   const latest=FAT_LIST.slice().sort((a,b)=>b.id-a.id).slice(0,5);
   return `<h1>الفتاوى</h1>
-  <div class="askBig" onclick="openAsk()">اطرح سؤالك<small>waydii suaal</small></div>
+  <div class="askBig" onclick="openAsk()">اطرح سؤالك<span class="sw">WAYDII SUAAL</span></div>
   <div id="askForm" class="askForm" style="display:none">
     <textarea id="qText" class="qArea" placeholder="اكتب سؤالك هنا"></textarea>
     <div class="row"><input id="qName" placeholder="اسمك (اختياري)"><input id="qContact" placeholder="الهاتف أو البريد (اختياري)"></div>
@@ -171,7 +171,7 @@ function go(){const p=(location.hash||'#/').slice(2).split('/'),k=p[0];
 addEventListener('hashchange',()=>{scrollTo(0,0);go()});go();loadFat();
 function injectFatCss(){const st=document.createElement('style');st.textContent=`
 .askBig{background:linear-gradient(120deg,#1b6b3a,#2e8b57);color:#fff;text-align:center;font-size:22px;font-weight:800;padding:26px;border-radius:16px;cursor:pointer;margin:14px 0}
-.askBig small{display:block;font-size:15px;font-weight:600;opacity:.9;margin-top:4px}
+.askBig .sw{display:block;font-size:32px;font-weight:900;margin-top:8px;letter-spacing:1px}
 .askForm{background:#fff;border:2px solid #1b6b3a;border-radius:16px;padding:14px;margin:10px 0}
 .qArea{width:100%;min-height:160px;font:inherit;font-size:17px;padding:12px;border:1px solid #e8d3a2;border-radius:10px;box-sizing:border-box}
 .askForm .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
