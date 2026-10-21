@@ -20,6 +20,11 @@ button.pri{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:10p
 .msg{color:#b3261e;font-weight:700;min-height:20px;margin-top:8px}
 .note{color:#6b5a3e;font-size:13px}
 .hidden{display:none!important}
+.item{border-bottom:1px solid #e8d3a2;padding:10px 0}
+.sm{font:inherit;font-size:13px;background:#1b6b3a;color:#fff;border:0;border-radius:8px;padding:5px 12px;cursor:pointer;margin:4px 0}
+.sm.del{background:#b3261e}
+.ok{color:#1b6b3a;font-weight:700}
+textarea{font:inherit}
 </style>
 </head>
 <body>
@@ -44,7 +49,7 @@ button.pri{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:10p
     <p class="note">كل قسم يُفعَّل بعد تجهيز جدوله. ستظهر هنا نماذج الإضافة والتعديل والحذف لكل قسم.</p>
     <div class="sections">
       <div class="sec soon">المكتبة<br><small>قريباً</small></div>
-      <div class="sec soon">الفتاوى<br><small>قريباً</small></div>
+      <div class="sec" style="cursor:pointer" onclick="openFatwa()">الفتاوى<br><small>إدارة</small></div>
       <div class="sec soon">المقالات<br><small>قريباً</small></div>
       <div class="sec soon">الحلقات<br><small>قريباً</small></div>
       <div class="sec soon">الاستشارات<br><small>قريباً</small></div>
@@ -52,6 +57,28 @@ button.pri{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:10p
       <div class="sec soon">الأخبار والإعلانات<br><small>قريباً</small></div>
       <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
     </div>
+  </div>
+</div>
+
+<div id="fatwaBox" class="wrap hidden">
+  <div class="card">
+    <h2>الفتاوى</h2>
+    <h3 style="margin:4px 0;color:#6b5a3e">الأسئلة الواردة من الزوار</h3>
+    <div id="qInboxMsg" class="msg"></div>
+    <div id="inbox"></div>
+    <hr style="border:0;border-top:2px solid #e8d3a2;margin:16px 0">
+    <h3 id="fFormTitle" style="margin:4px 0;color:#6b5a3e">إضافة فتوى جديدة</h3>
+    <select id="fCat" style="width:100%;padding:9px;margin-top:8px;font:inherit;border:1px solid #e8d3a2;border-radius:8px">
+      <option>CAQIIDADA</option><option>SALAADDA</option><option>DAHAARADA</option><option>SOONKA</option><option>ZAKADA</option><option>XAJKA</option><option>ARRI</option><option>AHA QOYSKA</option><option>NIKAAXA</option><option>BAYCA IYO MUCAAMALAATKA</option>
+    </select>
+    <input id="fQ" placeholder="السؤال">
+    <textarea id="fA" rows="5" placeholder="الجواب" style="width:100%;margin-top:8px;padding:9px;border:1px solid #e8d3a2;border-radius:8px;box-sizing:border-box"></textarea>
+    <label style="display:block;margin-top:8px"><input type="checkbox" id="fPub" checked style="width:auto"> منشورة للزوار</label>
+    <button class="pri" onclick="saveFatwa()">حفظ</button>
+    <button class="pri" style="background:#6b5a3e" onclick="resetFatwa()">فتوى جديدة</button>
+    <div id="fMsg" class="msg"></div>
+    <h3 style="color:#6b5a3e">كل الفتاوى</h3>
+    <div id="fList"></div>
   </div>
 </div>
 
@@ -77,6 +104,107 @@ async function enter(){
   $('gate').classList.add('hidden');
   $('app').classList.remove('hidden');
   $('logoutBtn').classList.remove('hidden');
+}
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let FATS=[], editingId=null;
+
+function openFatwa(){
+  $('fatwaBox').classList.remove('hidden');
+  $('fatwaBox').scrollIntoView({behavior:'smooth'});
+  loadInbox();
+  loadFatwas();
+}
+
+async function loadFatwas(){
+  const {data,error}=await db.from('fatwas').select('*').order('created_at',{ascending:false});
+  if(error){$('fMsg').className='msg';$('fMsg').textContent='تعذّر التحميل: '+error.message;return}
+  FATS=data||[];
+  renderFatwas();
+}
+
+function renderFatwas(){
+  $('fList').innerHTML=FATS.map(f=>`<div class="item"><b>${esc(f.category)}</b>
+    <div>${esc(f.question)}</div>
+    <div class="note">${f.published?'منشورة':'مخفية'}</div>
+    <button class="sm" onclick="editFatwa(${f.id})">تعديل</button>
+    <button class="sm del" onclick="delFatwa(${f.id})">حذف</button></div>`).join('')
+    ||'<p class="note">لا توجد فتاوى بعد</p>';
+}
+
+function editFatwa(id){
+  const f=FATS.find(x=>x.id===id); if(!f) return;
+  editingId=id;
+  $('fCat').value=f.category||'';
+  $('fQ').value=f.question||'';
+  $('fA').value=f.answer||'';
+  $('fPub').checked=!!f.published;
+  $('fFormTitle').textContent='تعديل فتوى';
+  $('fatwaBox').scrollIntoView({behavior:'smooth'});
+}
+
+function resetFatwa(){
+  editingId=null;
+  ['fCat','fQ','fA'].forEach(i=>$(i).value='');
+  $('fPub').checked=true;
+  $('fFormTitle').textContent='إضافة فتوى جديدة';
+}
+
+async function saveFatwa(){
+  const row={category:$('fCat').value.trim(),question:$('fQ').value.trim(),answer:$('fA').value.trim(),published:$('fPub').checked};
+  if(!row.category||!row.question||!row.answer){$('fMsg').className='msg';$('fMsg').textContent='املأ التصنيف والسؤال والجواب';return}
+  const res=editingId
+    ? await db.from('fatwas').update(row).eq('id',editingId)
+    : await db.from('fatwas').insert(row);
+  if(res.error){$('fMsg').className='msg';$('fMsg').textContent='تعذّر الحفظ: '+res.error.message;return}
+  $('fMsg').className='ok';$('fMsg').textContent='تم الحفظ ✓';
+  resetFatwa();
+  loadFatwas();
+}
+
+async function delFatwa(id){
+  if(!confirm('حذف هذه الفتوى نهائياً؟')) return;
+  const {error}=await db.from('fatwas').delete().eq('id',id);
+  if(error){$('fMsg').className='msg';$('fMsg').textContent='تعذّر الحذف: '+error.message;return}
+  loadFatwas();
+}
+
+const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRI','AHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
+
+async function loadInbox(){
+  const {data,error}=await db.from('fatwa_questions').select('*').eq('status','new').order('created_at',{ascending:true});
+  if(error){$('qInboxMsg').className='msg';$('qInboxMsg').textContent='تعذّر تحميل الأسئلة: '+error.message;return}
+  $('inbox').innerHTML=(data||[]).map(q=>`<div class="item">
+    <div class="note">#${q.id} — ${esc(q.asker_name||'بدون اسم')} ${esc(q.asker_contact||'')}</div>
+    <div style="font-size:16px;white-space:pre-wrap;line-height:1.9">${esc(q.question)}</div>
+    <select id="fo${q.id}" style="width:100%;padding:8px;margin-top:6px;font:inherit;border:1px solid #e8d3a2;border-radius:8px">
+      ${FOLDERS.map(f=>`<option>${f}</option>`).join('')}
+    </select>
+    <textarea id="an${q.id}" rows="6" placeholder="اكتب الجواب" style="width:100%;margin-top:6px;padding:9px;border:1px solid #e8d3a2;border-radius:8px;box-sizing:border-box;font:inherit"></textarea>
+    <button class="sm" onclick="answerQ(${q.id})">نشر الجواب</button>
+    <button class="sm del" onclick="rejectQ(${q.id})">رفض</button>
+  </div>`).join('')||'<p class="note">لا توجد أسئلة جديدة</p>';
+}
+
+async function answerQ(id){
+  const cat=$('fo'+id).value, ans=$('an'+id).value.trim();
+  if(!ans){$('qInboxMsg').className='msg';$('qInboxMsg').textContent='اكتب الجواب أولاً';return}
+  const {data:q,error:e1}=await db.from('fatwa_questions').select('question').eq('id',id).single();
+  if(e1){$('qInboxMsg').textContent='تعذّر قراءة السؤال: '+e1.message;return}
+  const {data:f,error:e2}=await db.from('fatwas').insert({category:cat,question:q.question,answer:ans,published:true}).select('id').single();
+  if(e2){$('qInboxMsg').textContent='تعذّر النشر: '+e2.message;return}
+  const {error:e3}=await db.from('fatwa_questions').update({status:'answered',fatwa_id:f.id}).eq('id',id);
+  if(e3){$('qInboxMsg').textContent='نُشر الجواب لكن تعذّر تحديث السؤال: '+e3.message;return}
+  $('qInboxMsg').className='ok';$('qInboxMsg').textContent='تم نشر الجواب في القسم ✓';
+  loadInbox();
+  loadFatwas();
+}
+
+async function rejectQ(id){
+  if(!confirm('رفض هذا السؤال؟')) return;
+  const {error}=await db.from('fatwa_questions').update({status:'rejected'}).eq('id',id);
+  if(error){$('qInboxMsg').textContent='تعذّر الرفض: '+error.message;return}
+  loadInbox();
 }
 
 async function logout(){

@@ -89,7 +89,43 @@ function libPage(){return `<h1>المكتبة</h1>`+S.sch.map((s,i)=>`<div class
 function addArt(i){const v=document.getElementById('af'+i).value.trim();if(v){S.lib[i].push(v);go()}}
 function addSch(){const v=document.getElementById('ns').value.trim();if(v){S.sch.push(v);S.lib[S.sch.length-1]=[];go()}}
 function upl(i){const f=document.getElementById('fl'+i).files,a=document.getElementById('up'+i).value;if(f.length){const k=i+a;S.files[k]=(S.files[k]||[]).concat([...f].map(x=>x.name));go()}}
-function fatPage(){return `<h1>الفتاوى</h1><div class="chips">${Object.keys(FAT).map(k=>`<button class="chip ${k==fcat?'on':''}" onclick="fcat='${k}';go()">${k}</button>`).join('')}</div>`+(FAT[fcat]||[]).map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}
+let FV='', FAT_LIST=[];
+const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRI','AHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
+const qaCard=f=>`<div class="qa"><div class="qnum">#${f.id}</div><span class="tag">SUAAL</span><div class="qtext">${esc(f.question)}</div><hr class="qline"><span class="tag">JAWAAB</span><div class="atext">${esc(f.answer)}</div></div>`;
+function openAsk(){const f=document.getElementById('askForm');if(f){f.style.display='block';document.getElementById('qText').focus()}}
+async function sendQ(){
+  const t=document.getElementById('qText').value.trim(), m=document.getElementById('qMsg');
+  if(t.length<5){m.textContent='اكتب سؤالك أولاً';return}
+  if(!window.SB){m.textContent='جارٍ التحميل، حاول بعد لحظات';return}
+  const {error}=await window.SB.from('fatwa_questions').insert({
+    question:t,
+    asker_name:document.getElementById('qName').value.trim()||null,
+    asker_contact:document.getElementById('qContact').value.trim()||null
+  });
+  if(error){m.textContent='تعذّر الإرسال: '+error.message;return}
+  document.getElementById('qText').value='';
+  m.textContent='تم إرسال سؤالك، وستُنشر الإجابة قريباً ✓';
+}
+function fatPage(){
+  if(FV){
+    const list=FAT_LIST.filter(f=>f.category===FV).sort((a,b)=>a.id-b.id);
+    return `<h1>الفتاوى</h1><button class="backBtn" onclick="FV='';go()">← كل الأقسام</button><h2 class="fold">${esc(FV)}</h2>`+(list.map(qaCard).join('')||'<div class="card note">لا توجد أسئلة في هذا القسم بعد.</div>');
+  }
+  const latest=FAT_LIST.slice().sort((a,b)=>b.id-a.id).slice(0,5);
+  return `<h1>الفتاوى</h1>
+  <div class="askBig" onclick="openAsk()">اطرح سؤالك<small>waydii suaal</small></div>
+  <div id="askForm" class="askForm" style="display:none">
+    <textarea id="qText" class="qArea" placeholder="اكتب سؤالك هنا"></textarea>
+    <div class="row"><input id="qName" placeholder="اسمك (اختياري)"><input id="qContact" placeholder="الهاتف أو البريد (اختياري)"></div>
+    <button class="sendBtn" onclick="sendQ()">إرسال السؤال</button>
+    <div id="qMsg" class="note"></div>
+  </div>
+  <h3 class="sub">الأقسام</h3>
+  <div class="folders">${FOLDERS.map(k=>`<button class="folder" onclick="FV='${k}';go()">${k}<small>${FAT_LIST.filter(f=>f.category===k).length} سؤال</small></button>`).join('')}</div>
+  <h3 class="sub">آخر الأسئلة</h3>
+  ${latest.map(qaCard).join('')||'<div class="card note">لا توجد أسئلة منشورة بعد.</div>'}`;
+}
+function fatPageOld(){return`<h1>الفتاوى</h1><div class="chips">${Object.keys(FAT).map(k=>`<button class="chip ${k==fcat?'on':''}" onclick="fcat='${k}';go()">${k}</button>`).join('')}</div>`+(FAT[fcat]||[]).map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}
 const HAL=['العقيدة','الفقه','الحديث','القرآن وعلومه','مصطلح الحديث','أصول الفقه','النحو والصرف','اللغة والأدب'];
 const halPage=()=>`<h1>حلقات</h1><p>برنامج تدريس عن بعد بمنصة تفاعلية يشارك فيها الرواد من أي مكان.</p><div class="grid">${HAL.map(h=>`<div class="tile g" style="flex-direction:column;align-items:flex-start">${ICO}<span>${h}</span></div>`).join('')}</div>`;
 const mgrNote=()=>'';
@@ -133,7 +169,27 @@ function go(){const p=(location.hash||'#/').slice(2).split('/'),k=p[0];
  document.getElementById('nav').innerHTML=`<a href="#/" class="${k?'':'on'}">الرئيسية</a>`+MAIN.map(([a,t])=>`<a href="#/${a}" class="${a==k?'on':''}">${t}</a>`).join('')+`<a href="#/branches" class="${k=='branches'?'on':''}">فروع المنظمة</a>`;
  const y=scrollY;document.getElementById('app').innerHTML=k=='itqan'&&p[1]!==undefined?itqBranch(+p[1]):(R[k]||R[''])();scrollTo(0,y)}
 addEventListener('hashchange',()=>{scrollTo(0,0);go()});go();loadFat();
-function loadFat(){const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';s.onload=async()=>{const sb=supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co','sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');const {data,error}=await sb.from('fatwas').select('category,question,answer').eq('published',true).order('created_at',{ascending:true});if(error||!data)return;FAT={};data.forEach(f=>{(FAT[f.category]=FAT[f.category]||[]).push([f.question,f.answer])});fcat=Object.keys(FAT)[0]||'';go()};document.head.appendChild(s)}
+function injectFatCss(){const st=document.createElement('style');st.textContent=`
+.askBig{background:linear-gradient(120deg,#1b6b3a,#2e8b57);color:#fff;text-align:center;font-size:22px;font-weight:800;padding:26px;border-radius:16px;cursor:pointer;margin:14px 0}
+.askBig small{display:block;font-size:15px;font-weight:600;opacity:.9;margin-top:4px}
+.askForm{background:#fff;border:2px solid #1b6b3a;border-radius:16px;padding:14px;margin:10px 0}
+.qArea{width:100%;min-height:160px;font:inherit;font-size:17px;padding:12px;border:1px solid #e8d3a2;border-radius:10px;box-sizing:border-box}
+.askForm .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.askForm input{flex:1;min-width:160px;padding:10px;border:1px solid #e8d3a2;border-radius:8px;font:inherit}
+.sendBtn{width:100%;margin-top:10px;background:#c9a04a;color:#fff;border:0;border-radius:10px;padding:14px;font:inherit;font-weight:700;font-size:18px;cursor:pointer}
+.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.folder{background:#fff;border:1px solid #e8d3a2;border-radius:12px;padding:14px;font:inherit;font-weight:700;cursor:pointer;text-align:center}
+.folder small{display:block;font-weight:400;color:#6b5a3e}
+.qa{background:#fff;border:1px solid #e8d3a2;border-radius:14px;padding:18px 20px;margin:12px 0;width:100%}
+.qnum{color:#6b5a3e;font-size:13px;margin-bottom:6px}
+.tag{display:inline-block;background:#c0392b;color:#fff;font-weight:800;padding:3px 14px;border-radius:4px;margin-bottom:8px}
+.qtext,.atext{font-size:18px;line-height:2;white-space:pre-wrap;word-break:break-word;min-height:4em}
+.qline{border:0;border-top:2px solid #e8d3a2;margin:12px 0}
+.fold{color:#1b6b3a}
+.backBtn{background:none;border:0;color:#1b6b3a;font:inherit;cursor:pointer;padding:6px 0;font-size:16px}
+.sub{color:#6b5a3e;margin:18px 0 6px}
+`;document.head.appendChild(st)}
+function loadFat(){injectFatCss();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';s.onload=async()=>{window.SB=supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co','sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');const {data,error}=await window.SB.from('fatwas').select('id,category,question,answer').eq('published',true).order('id',{ascending:true});if(error||!data)return;FAT_LIST=data;go()};document.head.appendChild(s)}
 </script>
 </body>
 </html>
