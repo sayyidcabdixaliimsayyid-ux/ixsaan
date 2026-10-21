@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة إدارة الموقع</title>
+<style>
+body{font-family:Tahoma,Cairo,sans-serif;background:#fbf7ee;color:#2a1d0a;margin:0;line-height:1.5}
+header{background:linear-gradient(120deg,#123d24,#1b6b3a);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+header h1{margin:0;font-size:20px}
+header a,header button{color:#fbb040;font-size:14px;text-decoration:none;background:none;border:0;cursor:pointer;font:inherit}
+.wrap{padding:14px;max-width:900px;margin:0 auto}
+.card{background:#fff;border:1px solid #e8d3a2;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 4px 12px rgba(0,0,0,.05)}
+.card h2{margin:0 0 10px;font-size:18px;color:#1b6b3a}
+.sections{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.sec{background:#fbf7ee;border:1px solid #e8d3a2;border-radius:12px;padding:14px;text-align:center}
+.sec.soon{color:#6b5a3e;opacity:.8}
+input{font:inherit;padding:9px;border:1px solid #e8d3a2;border-radius:8px;width:100%;box-sizing:border-box;margin-top:8px}
+button.pri{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;width:100%;margin-top:8px}
+.msg{color:#b3261e;font-weight:700;min-height:20px;margin-top:8px}
+.note{color:#6b5a3e;font-size:13px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>لوحة إدارة الموقع</h1>
+  <div><a href="index.html">← الموقع</a> <button id="logoutBtn" class="hidden" onclick="logout()">خروج</button></div>
+</header>
+
+<div id="gate" class="wrap">
+  <div class="card" style="max-width:380px;margin:30px auto">
+    <h3 style="margin-top:0;color:#1b6b3a">تسجيل الدخول</h3>
+    <input id="gEmail" type="email" placeholder="البريد الإلكتروني">
+    <input id="gPass" type="password" placeholder="كلمة المرور">
+    <button class="pri" onclick="login()">دخول</button>
+    <div id="gateMsg" class="msg"></div>
+  </div>
+</div>
+
+<div id="app" class="wrap hidden">
+  <div class="card">
+    <h2>الأقسام</h2>
+    <p class="note">كل قسم يُفعَّل بعد تجهيز جدوله. ستظهر هنا نماذج الإضافة والتعديل والحذف لكل قسم.</p>
+    <div class="sections">
+      <div class="sec soon">المكتبة<br><small>قريباً</small></div>
+      <div class="sec soon">الفتاوى<br><small>قريباً</small></div>
+      <div class="sec soon">المقالات<br><small>قريباً</small></div>
+      <div class="sec soon">الحلقات<br><small>قريباً</small></div>
+      <div class="sec soon">الاستشارات<br><small>قريباً</small></div>
+      <div class="sec soon">التاريخ<br><small>قريباً</small></div>
+      <div class="sec soon">الأخبار والإعلانات<br><small>قريباً</small></div>
+      <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL='https://tmhfjnqujgmwayktsbnd.supabase.co';
+const SUPABASE_KEY='sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL';
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+
+async function login(){
+  const {error}=await db.auth.signInWithPassword({email:$('gEmail').value.trim(),password:$('gPass').value});
+  if(error){$('gateMsg').textContent='البريد أو كلمة المرور غير صحيحة';return}
+  enter();
+}
+
+async function enter(){
+  const {data:admin,error}=await db.rpc('is_site_admin');
+  if(error||admin!==true){
+    $('gateMsg').textContent='هذا الحساب ليس مشرفاً للموقع';
+    await db.auth.signOut();return;
+  }
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('logoutBtn').classList.remove('hidden');
+}
+
+async function logout(){
+  await db.auth.signOut();
+  location.reload();
+}
+
+db.auth.getSession().then(({data})=>{ if(data.session) enter(); });
+</script>
+</body>
+</html>
