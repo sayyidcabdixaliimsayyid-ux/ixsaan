@@ -123,16 +123,17 @@ async function enter(){
 }
 
 async function loadAll(){
-  const [cl,st,pay,hist,pr]=await Promise.all([
+  const [cl,st,pay,hist,pr,tt]=await Promise.all([
     db.from('classes').select('id,name,sort_order').order('sort_order').range(0,9999),
     db.from('students').select('id,full_name,class_id,is_boarder,is_legacy,admitted,status,address').range(0,9999),
     db.from('payments').select('student_id,month,amount,kind').range(0,9999),
     db.from('class_history').select('student_id,class_name,school_year,result').range(0,9999),
-    db.from('profiles').select('full_name,role,teacher_keys').range(0,9999)
+    db.from('profiles').select('full_name,role,teacher_keys').range(0,9999),
+    db.from('timetables').select('data').eq('id','tt_1448_s2').maybeSingle()
   ]);
-  const failed=[cl,st,pay,hist,pr].filter(r=>r.error).map(r=>r.error.message);
+  const failed=[cl,st,pay,hist,pr,tt].filter(r=>r.error).map(r=>r.error.message);
   $('loadMsg').textContent=failed.length?'تعذّر تحميل بعض البيانات: '+failed.join(' | '):'';
-  D={classes:cl.data||[],students:st.data||[],payments:pay.data||[],history:hist.data||[],profiles:pr.data||[]};
+  D={classes:cl.data||[],students:st.data||[],payments:pay.data||[],history:hist.data||[],profiles:pr.data||[],tt:(tt.data&&tt.data.data)||null};
   buildMonths();
   renderFinance();
   renderStudents();
@@ -194,11 +195,16 @@ function renderStudents(){
 }
 
 function renderStaff(){
-  const T=D.profiles.filter(p=>Array.isArray(p.teacher_keys) && p.teacher_keys.length);
+  // الأساتذة من الجدول الدراسي المحفوظ (قائمة المعلمين + كل معلم ظهر في الخانات)
+  const tt=D.tt||{g:[],tl:[]};
+  const teachers=[...new Set([...(tt.tl||[]),...tt.g.flat(2).map(c=>c[1])].filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'ar'));
+  // الإداريون من الحسابات (كل من ليس دوره معلماً)
   const A=D.profiles.filter(p=>p.role!=='teacher');
   $('staff').innerHTML=
-    `<div class="grid">${kpi('عدد الأساتذة',T.length)}${kpi('عدد الإداريين والموظفين',A.length)}</div>`+
-    `<h3>الأساتذة</h3><ul>${T.map(p=>`<li>${esc(p.full_name)}</li>`).join('')}</ul>`+
+    `<div class="grid">${kpi('عدد الأساتذة (من الجدول الدراسي)',teachers.length)}${kpi('عدد الإداريين والموظفين',A.length)}</div>`+
+    (D.tt?'':'<p class="note">لم يُعثر على الجدول الدراسي المحفوظ، القائمة فارغة.</p>')+
+    `<h3>الأساتذة</h3><ul>${teachers.map(t=>`<li><a href="teacher.html?name=${encodeURIComponent(t)}">${esc(t)}</a></li>`).join('')}</ul>`+
     `<h3>الإداريون والموظفون</h3><ul>${A.map(p=>`<li>${esc(p.full_name)} — ${esc(ROLE_NAMES[p.role]||p.role)}</li>`).join('')}</ul>`;
 }
 
