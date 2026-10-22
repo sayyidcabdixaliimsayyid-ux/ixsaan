@@ -80,7 +80,7 @@ textarea{font:inherit}
             <button id="adDel" class="pri hidden" style="width:auto;flex:1;background:#b3261e" onclick="delAd()">حذف التصميم</button>
           </div>
           <div id="adMsg" class="msg"></div>
-          <input type="file" id="adFile" accept="image/*" style="display:none" onchange="uploadAd(this.files[0]);this.value=''">
+          <input type="file" id="adFile" accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"style="display:none" onchange="uploadAd(this.files[0]);this.value=''">
         </div>
       </div>
 
