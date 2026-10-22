@@ -77,7 +77,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,su
 <script>
 const ICO='<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="24" height="24"/><rect x="8" y="8" width="24" height="24" transform="rotate(45 20 20)"/><circle cx="20" cy="20" r="4"/></svg>';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const MAIN=[['library','المكتبة'],['fatwa','الفتاوى'],['halaqat','حلقات'],['articles','مقالات'],['consult','استشارات'],['history','تاريخ']];
+const MAIN=[['library','المكتبة'],['fatwa','الفتاوى'],['halaqat','حلقات'],['articles','مقالات'],['about','عن المنظمة'],['zad','زاد الداعية'],['programs','برامج دعوية']];
 const BR=[['institute','معهد الإحسان لإعداد العلماء'],['quran','الجمعية القرآنية في كينيا'],['women','منظمة الإحسان قسم النساء'],['seasonal','الدورات الموسمية'],['dawah','شؤون الدعوة'],['schools','المدارس الدمجية']];
 const FEE=100,ADM=50;
 const S={admin:false,lib:{},files:{},sch:[],
@@ -291,8 +291,7 @@ function instPage(){return `<div class="row"><a class="btn" href="dashboard.html
 function addIn(){const v=[1,2,3,4].map(k=>document.getElementById('i'+k).value.trim());if(v[0]&&v[1])S.inst.push({n:v[0],g:v[1],p:v[2],cl:v[3],adm:false});go()}
 const R={'':()=>(BANNERS['home-hero']?banner('home-hero'):`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p></div>`)+`${tiles(MAIN)}<div class="band"></div><h1 style="text-align:center">فروع المنظمة</h1>${tiles(BR,'g')}`,
  library:libraryPageV2,fatwa:fatPage,halaqat:halPage,
- articles:()=>sec('مقالات',[]),consult:()=>sec('استشارات',[],'صفحات تعالج المواضيع الاجتماعية. ستظهر هنا الاستشارات عند نشرها.'),
- history:()=>sec('تاريخ',[]),
+ articles:()=>sec('مقالات',[]),about:()=>sec('عن المنظمة',[],'سيُنشر هنا تعريف بالمنظمة قريباً.'),zad:()=>sec('زاد الداعية',[],'سيُنشر هنا زاد الداعية قريباً.'),programs:()=>sec('برامج دعوية',[],'سيُنشر هنا برنامج الدعوة قريباً.'),
  branches:branchesPage,institute:instPage,quran:quranPage,women:womenPage,itqan:itqanPage,reports:reportsPage,
  seasonal:()=>sec('الدورات الموسمية',[]),dawah:()=>sec('شؤون الدعوة',[]),schools:()=>sec('المدارس الدمجية',[])};
 function go(){const p=(location.hash||'#/').slice(2).split('/'),k=p[0];
