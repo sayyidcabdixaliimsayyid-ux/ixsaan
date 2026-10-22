@@ -26,7 +26,7 @@ th{background:#fbb040}
 .hidden{display:none!important}
 ul{margin:4px 0;padding-inline-start:22px;font-size:14px}
 .ihsanLink{position:relative;display:inline-block;overflow:hidden;border-radius:8px;perspective:300px;vertical-align:middle}
-.ihsanImg{display:block;animation:ihsanLogoFx 5s infinite ease-in-out}
+.ihsanImg{display:block;animation:ihsanLogoFx 5s infinite ease-in-out;backface-visibility:hidden}
 .ihsanLink::after{content:"";position:absolute;top:-10%;bottom:-10%;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);transform:skewX(-20deg);animation:ihsanBeam 5s infinite;pointer-events:none}
 @keyframes ihsanLogoFx{
 0%,100%{transform:translateX(0) rotateY(360deg) scale(1);opacity:1;filter:none}

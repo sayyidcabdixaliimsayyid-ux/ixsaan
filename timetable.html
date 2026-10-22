@@ -44,7 +44,7 @@ td.c.hl{background:var(--hl)}td.c.dim{opacity:.3}td.c.empty{color:var(--mut)}
 .rw{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}.rw span{min-width:90px}.chk{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chip{background:var(--acs);border-radius:999px;padding:3px 10px;font-size:.88rem}.chip button{border:0;background:none;cursor:pointer;color:var(--ac);font-size:1rem}.bad{color:#d33}.ok{color:#198754}
 @media print{.bar,.note,#toast{display:none}header{background:none;color:#000}}
 .ihsanLink{position:relative;display:inline-block;overflow:hidden;border-radius:8px;perspective:300px;vertical-align:middle}
-.ihsanImg{display:block;animation:ihsanLogoFx 5s infinite ease-in-out}
+.ihsanImg{display:block;animation:ihsanLogoFx 5s infinite ease-in-out;backface-visibility:hidden}
 .ihsanLink::after{content:"";position:absolute;top:-10%;bottom:-10%;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);transform:skewX(-20deg);animation:ihsanBeam 5s infinite;pointer-events:none}
 @keyframes ihsanLogoFx{
 0%,100%{transform:translateX(0) rotateY(360deg) scale(1);opacity:1;filter:none}

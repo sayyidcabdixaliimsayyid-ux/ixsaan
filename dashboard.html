@@ -91,7 +91,7 @@ body{margin:0;font-family:Tahoma,Cairo,sans-serif;color:#2a1d0a;min-height:100vh
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 .ihsanLink{position:relative;display:inline-block;overflow:hidden;border-radius:8px;perspective:300px;vertical-align:middle}
-.ihsanImg{display:block;animation:ihsanLogoFx 5s infinite ease-in-out}
+.ihsanImg{display:block;animation:ihsanLogoFx 5s infinite ease-in-out;backface-visibility:hidden}
 .ihsanLink::after{content:"";position:absolute;top:-10%;bottom:-10%;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);transform:skewX(-20deg);animation:ihsanBeam 5s infinite;pointer-events:none}
 @keyframes ihsanLogoFx{
 0%,100%{transform:translateX(0) rotateY(360deg) scale(1);opacity:1;filter:none}
@@ -127,7 +127,7 @@ body{margin:0;font-family:Tahoma,Cairo,sans-serif;color:#2a1d0a;min-height:100vh
       <h1>أهلاً بكم في النظام الإداري والتحكم</h1>
       <div class="sub">معهد الإحسان لإعداد العلماء</div>
     </div>
-    <a href="index.html" class="logoBox ihsanLink" style="padding:6px 10px;display:block"><img class="ihsanImg" src="ihsan-logo.png" alt="منظمة الإحسان" style="height:56px;display:block"></a>
+    <a href="index.html" class="logoBox ihsanLink" style="padding:6px 10px;display:block"><img class="ihsanImg" src="ihsan-logo.png" alt="منظمة الإحسان" style="height:56px;display:block;background:#fff;border-radius:8px;padding:4px"></a>
   </div>
 
   <div class="ticker"><div class="ticker-track" id="tickerText"></div></div>
