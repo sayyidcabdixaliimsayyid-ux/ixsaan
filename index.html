@@ -219,6 +219,64 @@ function libraryPageV2(){
   }
   return `<div class="fatWrap">${libHeader()}${tabs}${body}</div>`;
 }
+const ZAD=[['teacher','زاد المعلم'],['khatib','زاد الخطيب'],['student','زاد طالب العلم'],['ideas','افكار دعوية'],['family','ركن الأسرة'],['women','للنساء فقط'],['shubuhat','شبهات'],['alamuna','أعلامنا']];
+const ZCOLS=['#1b6b3a','#2456a6','#d9822b','#6a3d9a','#13857a','#a8323e','#9a6b12','#2c3e6b'];
+let POSTS=[], POSTS_READY=false, POSTS_LOADING=false, POST_ERR='';
+const pUrl=p=>p?window.SB.storage.from('library-media').getPublicUrl(p).data.publicUrl:'';
+const byDate=(a,b)=>new Date(b.created_at)-new Date(a.created_at);
+const postsOf=sec=>POSTS.filter(p=>p.section===sec).sort(byDate);
+const fmtDate=d=>new Date(d).toLocaleDateString('ar',{year:'numeric',month:'long',day:'numeric'});
+async function loadPosts(){
+  if(POSTS_LOADING) return; POSTS_LOADING=true;
+  for(let i=0;i<50&&!window.SB;i++) await new Promise(r=>setTimeout(r,200));
+  if(!window.SB){POSTS_LOADING=false;POSTS_READY=true;POST_ERR='تعذّر الاتصال بالخادم';go();return}
+  const {data,error}=await window.SB.from('posts').select('id,section,title,body,pull_quote,author_name,author_photo,cover_path,created_at,post_media(kind,file_path,sort)').eq('published',true).order('created_at',{ascending:false});
+  POST_ERR=error?error.message:'';
+  POSTS=error?[]:(data||[]).map(p=>({...p,post_media:(p.post_media||[]).slice().sort((a,b)=>a.sort-b.sort)}));
+  POSTS_READY=true; POSTS_LOADING=false; go();
+}
+const mediaHtml=p=>(p.post_media||[]).map(m=>{const u=pUrl(m.file_path);return m.kind==='video'?`<video class="pMedia" controls preload="none" src="${u}"></video>`:`<img class="pMedia" src="${u}" alt="" loading="lazy">`}).join('');
+const authorLink=a=>a.author_name?`<a class="authorLink" href="#/articles/author/${encodeURIComponent(a.author_name)}">${esc(a.author_name)}</a>`:'';
+const pageHead=t=>`<div class="libHead"><h1>${esc(t)}</h1></div>`;
+function postsWait(t){ if(!POSTS_READY) loadPosts(); return `<div class="fatWrap">${pageHead(t)}<div class="card note">جارٍ التحميل…</div></div>`; }
+function feedRoute(sec,title,back){
+  if(!POSTS_READY) return postsWait(title);
+  const list=postsOf(sec);
+  return `<div class="fatWrap">${back||''}${pageHead(title)}${POST_ERR?`<div class="card note">تعذّر تحميل المنشورات: ${esc(POST_ERR)}</div>`:''}${list.map(p=>`<article class="pcard"><h3 class="ptitle">${esc(p.title)}</h3><div class="pdate">${fmtDate(p.created_at)}</div>${p.body?`<div class="pbody">${esc(p.body)}</div>`:''}${mediaHtml(p)}</article>`).join('')||'<div class="card note">لا توجد منشورات بعد.</div>'}</div>`;
+}
+function authorPage(name){
+  const list=postsOf('articles').filter(a=>a.author_name===name);
+  return `<div class="fatWrap"><a class="backBtn" href="#/articles">← كل المقالات</a><div class="ribbon big" style="--c:#1b6b3a">${esc(name)}</div>${list.map(a=>`<div class="titleRow"><a href="#/articles/${a.id}">${esc(a.title)}</a><span>${fmtDate(a.created_at)}</span></div>`).join('')||'<div class="card note">لا توجد مقالات لهذا الكاتب.</div>'}</div>`;
+}
+function articleDetail(a){
+  const paras=(a.body||'').split(/\n\s*\n|\n/).map(s=>s.trim()).filter(Boolean);
+  const mid=Math.floor(paras.length/2);
+  const quote=t=>`<blockquote class="pull">${esc(t)}</blockquote>`;
+  let body=paras.map((t,i)=>(i===mid&&a.pull_quote?quote(a.pull_quote):'')+`<p class="ppara">${esc(t)}</p>`).join('');
+  if(!paras.length&&a.pull_quote) body=quote(a.pull_quote);
+  return `<div class="fatWrap"><a class="backBtn" href="#/articles">← كل المقالات</a><article class="pcard big">${a.cover_path?`<img class="pcoverBig" src="${pUrl(a.cover_path)}" alt="">`:''}<h1 class="artTitle">${esc(a.title)}</h1><div class="pmeta">${a.author_photo?`<img class="authorPhoto" src="${pUrl(a.author_photo)}" alt="">`:''}${authorLink(a)}<span>${fmtDate(a.created_at)}</span></div>${body}${mediaHtml(a)}</article></div>`;
+}
+function articlesRoute(p){
+  if(!POSTS_READY) return postsWait('المقالات');
+  if(p[1]==='author'&&p[2]) return authorPage(decodeURIComponent(p[2]));
+  if(p[1]){
+    const a=POSTS.find(x=>String(x.id)===p[1]&&x.section==='articles');
+    return a?articleDetail(a):'<div class="fatWrap"><a class="backBtn" href="#/articles">← كل المقالات</a><div class="card note">المقال غير موجود.</div></div>';
+  }
+  const all=postsOf('articles');
+  const main=all.slice(0,5).map(a=>`<article class="pcard">${a.cover_path?`<img class="pcover" src="${pUrl(a.cover_path)}" alt="">`:''}<h3 class="ptitle"><a href="#/articles/${a.id}">${esc(a.title)}</a></h3><div class="pmeta">${authorLink(a)}<span>${fmtDate(a.created_at)}</span></div></article>`).join('')||'<div class="card note">لا توجد مقالات بعد.</div>';
+  const older=all.slice(5);
+  const side=older.length?`<aside class="oldList"><h4>مقالات سابقة</h4>${older.map(a=>`<a href="#/articles/${a.id}">${esc(a.title)}</a>`).join('')}</aside>`:'';
+  return `<div class="fatWrap">${pageHead('المقالات')}<div class="artGrid"><div class="artMain">${main}</div>${side}</div></div>`;
+}
+function zadRoute(p){
+  if(!POSTS_READY) return postsWait('زاد الداعية');
+  if(!p[1]) return `<div class="fatWrap">${pageHead('زاد الداعية')}<div class="lgrid">${ZAD.map(([k,n],i)=>`<a class="lbtn" style="--c:${ZCOLS[i%ZCOLS.length]}" href="#/zad/${k}">${n}<small>${postsOf('zad-'+k).length} منشور</small></a>`).join('')}</div></div>`;
+  const z=ZAD.find(x=>x[0]===p[1]);
+  if(!z) return '<div class="fatWrap"><div class="card note">القسم غير موجود.</div></div>';
+  return feedRoute('zad-'+z[0],z[1],`<a class="backBtn" href="#/zad">← كل أقسام زاد الداعية</a>`);
+}
+const POSTROUTE={articles:articlesRoute,about:()=>feedRoute('about','عن المنظمة'),zad:zadRoute};
 let FV='', FAT_LIST=[];
 const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRIMAHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
 const qaCard=f=>`<div class="qa"><div class="qnum">#${f.id}</div><span class="tag">SUAAL</span><div class="qtext">${esc(f.question)}</div><hr class="qline"><span class="tag">JAWAAB</span><div class="atext">${esc(f.answer)}</div></div>`;
@@ -296,7 +354,7 @@ const R={'':()=>(BANNERS['home-hero']?banner('home-hero'):`<div class="hero"><h1
  seasonal:()=>sec('الدورات الموسمية',[]),dawah:()=>sec('شؤون الدعوة',[]),schools:()=>sec('المدارس الدمجية',[])};
 function go(){const p=(location.hash||'#/').slice(2).split('/'),k=p[0];
  document.getElementById('nav').innerHTML=`<a href="#/" class="${k?'':'on'}">الرئيسية</a>`+MAIN.map(([a,t])=>`<a href="#/${a}" class="${a==k?'on':''}">${t}</a>`).join('')+`<a href="#/branches" class="${k=='branches'?'on':''}">فروع المنظمة</a>`;
- const y=scrollY;document.getElementById('app').innerHTML=(k&&BANNERS[k]?banner(k):'')+(k=='itqan'&&p[1]!==undefined?itqBranch(+p[1]):(R[k]||R[''])());scrollTo(0,y)}
+ const y=scrollY;const sub=(k==='zad'&&p[1])?'zad-'+p[1]:k;document.getElementById('app').innerHTML=(sub&&BANNERS[sub]?banner(sub):'')+(POSTROUTE[k]?POSTROUTE[k](p):(k=='itqan'&&p[1]!==undefined?itqBranch(+p[1]):(R[k]||R[''])()));scrollTo(0,y)}
 addEventListener('hashchange',()=>{scrollTo(0,0);go()});go();loadFat();
 function injectFatCss(){const st=document.createElement('style');st.textContent=`
 .askBig{background:linear-gradient(120deg,#1b6b3a,#2e8b57);color:#fff;text-align:center;font-size:22px;font-weight:800;padding:26px;border-radius:16px;cursor:pointer;margin:14px 0}
@@ -359,6 +417,29 @@ function injectFatCss(){const st=document.createElement('style');st.textContent=
 .bookTxt{min-width:0;flex:1;display:flex;flex-direction:column;gap:8px}
 .bookTxt b{color:#2b1d0e;word-break:break-word}
 .bookBtn{align-self:flex-start;background:var(--c,#1b6b3a);color:#fff;text-decoration:none;border-radius:999px;padding:7px 16px;font-weight:700;font-size:14px}
+a.lbtn{text-decoration:none;display:block}
+.artGrid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
+@media(max-width:800px){.artGrid{grid-template-columns:minmax(0,1fr)}}
+.pcard{background:#fff;border:1px solid #e8d3a2;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.pcover{display:block;width:100%;height:240px;object-fit:cover;border-radius:12px;margin-bottom:10px}
+.pcoverBig{display:block;width:100%;max-height:460px;object-fit:cover;border-radius:14px;margin-bottom:14px}
+.ptitle{margin:4px 0;font-size:22px;font-weight:900;line-height:1.5}
+.ptitle a{color:#2b1d0e;text-decoration:none}
+.ptitle a:hover{color:#1b6b3a}
+.artTitle{font-size:34px;font-weight:900;line-height:1.6;color:#2b1d0e;margin:6px 0}
+.pmeta{color:#6b5a3e;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.authorLink{color:#1b6b3a;font-weight:700;text-decoration:underline;cursor:pointer}
+.authorPhoto{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #c9a04a}
+.pull{margin:22px 0;padding:18px 22px;border-inline-start:6px solid #c9a04a;background:#fbf6e9;font-size:24px;font-weight:800;line-height:1.9;color:#7a1f1f;border-radius:12px}
+.ppara{font-size:18px;line-height:2.1;color:#2b1d0e;margin:0 0 12px;white-space:pre-wrap}
+.oldList{background:#fff;border:1px solid #e8d3a2;border-radius:14px;padding:14px;margin:12px 0}
+.oldList h4{margin:0 0 8px;color:#1b6b3a}
+.oldList a{display:block;padding:7px 0;border-bottom:1px dashed #e8d3a2;color:#2456a6;text-decoration:none;font-size:15px}
+.titleRow{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #e8d3a2}
+.titleRow a{color:#2b1d0e;font-weight:700;text-decoration:none}
+.pMedia{display:block;width:100%;border-radius:12px;margin:10px 0}
+.pdate{color:#6b5a3e;font-size:13px}
+.pbody{font-size:17px;line-height:2;white-space:pre-wrap;margin:8px 0}
 .fatWrap{background:#fbf6e9 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><path d='M40 8l7 14 15 2-11 11 3 15-14-7-14 7 3-15-11-11 15-2z' fill='none' stroke='%23c9a04a' stroke-opacity='.16' stroke-width='1.2'/><circle cx='0' cy='0' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/><circle cx='80' cy='80' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/></svg>");border:1px solid #e8d3a2;border-radius:18px;padding:12px}
 `;document.head.appendChild(st)}
 async function showAdminLink(){

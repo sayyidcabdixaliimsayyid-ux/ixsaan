@@ -59,13 +59,35 @@ textarea{font:inherit}
           <div class="sec" style="cursor:pointer" onclick="openLib()">المكتبة<br><small>إدارة</small></div>
           <div class="sec" style="cursor:pointer" onclick="openFatwa()">الفتاوى<br><small>إدارة</small></div>
           <div class="sec" style="cursor:pointer" onclick="openAds()">الإعلانات والتصاميم<br><small>رفع وتغيير</small></div>
-          <div class="sec soon">المقالات<br><small>قريباً</small></div>
+          <div class="sec" style="cursor:pointer" onclick="openPosts('articles')">المقالات<br><small>نشر وإدارة</small></div>
           <div class="sec soon">الحلقات<br><small>قريباً</small></div>
-          <div class="sec soon">عن المنظمة<br><small>قريباً</small></div>
-          <div class="sec soon">زاد الداعية<br><small>قريباً</small></div>
+          <div class="sec" style="cursor:pointer" onclick="openPosts('about')">عن المنظمة<br><small>نشر وإدارة</small></div>
+          <div class="sec" style="cursor:pointer" onclick="openPosts('zad-teacher')">زاد الداعية<br><small>الأقسام الثمانية</small></div>
           <div class="sec soon">برامج دعوية<br><small>قريباً</small></div>
-          <div class="sec soon">الأخبار والإعلانات<br><small>قريباً</small></div>
-          <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
+                    <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
+        </div>
+      </div>
+
+      <div id="postBox" class="hidden">
+        <div class="card">
+          <h2 id="pbTitle">إدارة المنشورات</h2>
+          <div id="pbMsg" class="msg"></div>
+          <label class="note">القسم</label>
+          <select id="pbSec" onchange="loadPostList()" style="width:100%;padding:9px;margin-top:4px;font:inherit;border:1px solid #e8d3a2;border-radius:8px"></select>
+          <h3 style="color:#6b5a3e;margin-top:14px">منشور جديد</h3>
+          <input id="pbTitleIn" placeholder="العنوان">
+          <input id="pbAuthor" placeholder="اسم الكاتب (للمقالات)">
+          <textarea id="pbQuote" rows="2" placeholder="الفقرة المختارة (تظهر في منتصف المقال، اختيارية)" style="width:100%;margin-top:8px;padding:9px;border:1px solid #e8d3a2;border-radius:8px;box-sizing:border-box;font:inherit"></textarea>
+          <textarea id="pbBody" rows="8" placeholder="نص المقال أو المنشور" style="width:100%;margin-top:8px;padding:9px;border:1px solid #e8d3a2;border-radius:8px;box-sizing:border-box;font:inherit"></textarea>
+          <label class="note" style="display:block;margin-top:8px">صورة الكاتب (اختيارية)</label>
+          <input type="file" id="pbAuthorFile" accept=".jpg,.jpeg,.png,.gif,.webp,image/*">
+          <label class="note" style="display:block;margin-top:8px">صورة الغلاف الكبيرة (اختيارية)</label>
+          <input type="file" id="pbCoverFile" accept=".jpg,.jpeg,.png,.gif,.webp,image/*">
+          <label class="note" style="display:block;margin-top:8px">صور وفيديوهات إضافية (اختيارية)</label>
+          <input type="file" id="pbMediaFiles" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,image/*,video/*">
+          <button class="pri" onclick="publishPost()">نشر</button>
+          <h3 style="color:#6b5a3e">المنشورات في هذا القسم</h3>
+          <div id="pbList"></div>
         </div>
       </div>
 
@@ -388,7 +410,7 @@ async function delLesson(id,path){
   loadLibAdmin();
 }
 
-const ADS=[['home-hero','الواجهة الرئيسية (اللافتة)'],['library','المكتبة'],['fatwa','الفتاوى'],['halaqat','حلقات'],['articles','مقالات'],['about','عن المنظمة'],['zad','زاد الداعية'],['programs','برامج دعوية'],['seasonal','الدورات الموسمية'],['dawah','شؤون الدعوة'],['schools','المدارس الدمجية'],['branches','فروع المنظمة']];
+const ADS=[['home-hero','الواجهة الرئيسية (اللافتة)'],['library','المكتبة'],['fatwa','الفتاوى'],['halaqat','حلقات'],['articles','مقالات'],['about','عن المنظمة'],['zad','زاد الداعية'],['zad-teacher','زاد المعلم'],['zad-khatib','زاد الخطيب'],['zad-student','زاد طالب العلم'],['zad-ideas','افكار دعوية'],['zad-family','ركن الأسرة'],['zad-women','للنساء فقط'],['zad-shubuhat','شبهات'],['zad-alamuna','أعلامنا'],['programs','برامج دعوية'],['seasonal','الدورات الموسمية'],['dawah','شؤون الدعوة'],['schools','المدارس الدمجية'],['branches','فروع المنظمة']];
 let ADROWS={};
 const ADBUCKET='site-banners';
 
@@ -442,6 +464,81 @@ async function delAd(){
   await db.storage.from(ADBUCKET).remove([p]);
   adMsg('تم حذف التصميم',true);
   loadAds();
+}
+
+const POST_SECS=[['articles','المقالات'],['about','عن المنظمة'],['zad-teacher','زاد المعلم'],['zad-khatib','زاد الخطيب'],['zad-student','زاد طالب العلم'],['zad-ideas','افكار دعوية'],['zad-family','ركن الأسرة'],['zad-women','للنساء فقط'],['zad-shubuhat','شبهات'],['zad-alamuna','أعلامنا']];
+
+function pbMsg(t,ok){$('pbMsg').className=ok?'ok':'msg';$('pbMsg').textContent=t}
+
+function openPosts(sec){
+  $('postBox').classList.remove('hidden');
+  $('postBox').scrollIntoView({behavior:'smooth',block:'start'});
+  $('pbSec').innerHTML=POST_SECS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+  $('pbSec').value=sec;
+  loadPostList();
+}
+
+async function loadPostList(){
+  const sec=$('pbSec').value;
+  const {data,error}=await db.from('posts').select('id,title,created_at').eq('section',sec).order('created_at',{ascending:false});
+  if(error){pbMsg('تعذّر التحميل: '+error.message);return}
+  $('pbList').innerHTML=(data||[]).map(p=>`<div class="item"><b>${esc(p.title)}</b><br><button class="sm del" onclick="delPost(${p.id})">حذف</button></div>`).join('')
+    ||'<p class="note">لا توجد منشورات في هذا القسم بعد</p>';
+}
+
+function postPath(folder,file){
+  const ext=(file.name.split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
+  return `${folder}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+}
+
+async function upFile(path,file){
+  const r=await db.storage.from('library-media').upload(path,file,{contentType:file.type||undefined,upsert:false});
+  if(r.error) throw new Error(r.error.message);
+}
+
+async function publishPost(){
+  const sec=$('pbSec').value, title=$('pbTitleIn').value.trim();
+  if(!title){pbMsg('اكتب العنوان أولاً');return}
+  pbMsg('جارٍ النشر…',true);
+  try{
+    const folder='posts/'+sec;
+    let author_photo=null, cover_path=null;
+    const af=$('pbAuthorFile').files[0], cf=$('pbCoverFile').files[0];
+    if(af){author_photo=postPath(folder,af); await upFile(author_photo,af)}
+    if(cf){cover_path=postPath(folder,cf); await upFile(cover_path,cf)}
+    const {data:post,error}=await db.from('posts').insert({
+      section:sec,title,
+      body:$('pbBody').value.trim()||null,
+      pull_quote:$('pbQuote').value.trim()||null,
+      author_name:$('pbAuthor').value.trim()||null,
+      author_photo,cover_path,published:true
+    }).select('id').single();
+    if(error) throw new Error(error.message);
+    const media=[...$('pbMediaFiles').files];
+    const rows=[];
+    for(let i=0;i<media.length;i++){
+      const f=media[i], path=postPath(folder,f);
+      await upFile(path,f);
+      rows.push({post_id:post.id,kind:f.type.startsWith('video')?'video':'image',file_path:path,sort:i});
+    }
+    if(rows.length){
+      const {error:e2}=await db.from('post_media').insert(rows);
+      if(e2) throw new Error(e2.message);
+    }
+    ['pbTitleIn','pbAuthor','pbBody','pbQuote'].forEach(i=>$(i).value='');
+    ['pbAuthorFile','pbCoverFile','pbMediaFiles'].forEach(i=>$(i).value='');
+    pbMsg('تم النشر ✓',true);
+    loadPostList();
+  }catch(e){
+    pbMsg('تعذّر النشر: '+e.message);
+  }
+}
+
+async function delPost(id){
+  if(!confirm('حذف هذا المنشور نهائياً؟')) return;
+  const {error}=await db.from('posts').delete().eq('id',id);
+  if(error){pbMsg('تعذّر الحذف: '+error.message);return}
+  loadPostList();
 }
 
 async function logout(){
