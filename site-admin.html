@@ -58,12 +58,29 @@ textarea{font:inherit}
         <div class="sections">
           <div class="sec" style="cursor:pointer" onclick="openLib()">المكتبة<br><small>إدارة</small></div>
           <div class="sec" style="cursor:pointer" onclick="openFatwa()">الفتاوى<br><small>إدارة</small></div>
+          <div class="sec" style="cursor:pointer" onclick="openAds()">الإعلانات والتصاميم<br><small>رفع وتغيير</small></div>
           <div class="sec soon">المقالات<br><small>قريباً</small></div>
           <div class="sec soon">الحلقات<br><small>قريباً</small></div>
           <div class="sec soon">الاستشارات<br><small>قريباً</small></div>
           <div class="sec soon">التاريخ<br><small>قريباً</small></div>
           <div class="sec soon">الأخبار والإعلانات<br><small>قريباً</small></div>
           <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
+        </div>
+      </div>
+
+      <div id="adBox" class="hidden">
+        <div class="card">
+          <h2>الإعلانات والتصاميم</h2>
+          <p class="note">ارفع التصميم الذي صممته بالفوتوشوب (يُفضّل PNG أو JPG بعرض 1600 بكسل تقريباً). يظهر فوراً في الموضع المختار، وعند رفع تصميم جديد يحل محل القديم.</p>
+          <label class="note">الموضع</label>
+          <select id="adSel" onchange="renderAd()" style="width:100%;padding:9px;margin-top:4px;font:inherit;border:1px solid #e8d3a2;border-radius:8px"></select>
+          <div id="adPrev" style="margin:10px 0"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="pri" style="width:auto;flex:1" onclick="$('adFile').click()">رفع تصميم</button>
+            <button id="adDel" class="pri hidden" style="width:auto;flex:1;background:#b3261e" onclick="delAd()">حذف التصميم</button>
+          </div>
+          <div id="adMsg" class="msg"></div>
+          <input type="file" id="adFile" accept="image/*" style="display:none" onchange="uploadAd(this.files[0]);this.value=''">
         </div>
       </div>
 
@@ -325,6 +342,62 @@ async function delLesson(id,path){
   if(error){libMsg('تعذّر الحذف: '+error.message);return}
   await db.storage.from(LBUCKET).remove([path]);
   loadLibAdmin();
+}
+
+const ADS=[['home-hero','الواجهة الرئيسية (اللافتة)'],['library','المكتبة'],['fatwa','الفتاوى'],['halaqat','حلقات'],['articles','مقالات'],['consult','استشارات'],['history','تاريخ'],['seasonal','الدورات الموسمية'],['dawah','شؤون الدعوة'],['schools','المدارس الدمجية'],['branches','فروع المنظمة']];
+let ADROWS={};
+const ADBUCKET='site-banners';
+
+function adMsg(t,ok){$('adMsg').className=ok?'ok':'msg';$('adMsg').textContent=t}
+
+function openAds(){
+  $('adBox').classList.remove('hidden');
+  $('adBox').scrollIntoView({behavior:'smooth',block:'start'});
+  loadAds();
+}
+
+async function loadAds(){
+  const {data,error}=await db.from('site_banners').select('key,image_path');
+  if(error){adMsg('تعذّر التحميل: '+error.message);return}
+  ADROWS={}; (data||[]).forEach(r=>ADROWS[r.key]=r.image_path);
+  const cur=$('adSel').value;
+  $('adSel').innerHTML=ADS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+  if(cur) $('adSel').value=cur;
+  renderAd();
+}
+
+function renderAd(){
+  const k=$('adSel').value, p=ADROWS[k];
+  $('adPrev').innerHTML=p
+    ?`<img src="${db.storage.from(ADBUCKET).getPublicUrl(p).data.publicUrl}" style="width:100%;border-radius:12px;border:1px solid #e8d3a2">`
+    :'<p class="note">لا يوجد تصميم لهذا الموضع بعد</p>';
+  $('adDel').classList.toggle('hidden',!p);
+}
+
+async function uploadAd(file){
+  if(!file) return;
+  const k=$('adSel').value;
+  const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+  const path=`${k}/${Date.now()}.${ext}`;
+  adMsg('جارٍ رفع التصميم…',true);
+  const up=await db.storage.from(ADBUCKET).upload(path,file,{contentType:file.type||undefined,upsert:false});
+  if(up.error){adMsg('تعذّر الرفع: '+up.error.message);return}
+  const old=ADROWS[k];
+  const {error}=await db.from('site_banners').upsert({key:k,image_path:path,updated_at:new Date().toISOString()});
+  if(error){adMsg('رُفع الملف لكن تعذّر الحفظ: '+error.message);return}
+  if(old) await db.storage.from(ADBUCKET).remove([old]);
+  adMsg('تم نشر التصميم ✓',true);
+  loadAds();
+}
+
+async function delAd(){
+  const k=$('adSel').value, p=ADROWS[k];
+  if(!p||!confirm('حذف هذا التصميم من الموقع؟')) return;
+  const {error}=await db.from('site_banners').delete().eq('key',k);
+  if(error){adMsg('تعذّر الحذف: '+error.message);return}
+  await db.storage.from(ADBUCKET).remove([p]);
+  adMsg('تم حذف التصميم',true);
+  loadAds();
 }
 
 async function logout(){
