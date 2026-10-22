@@ -107,6 +107,10 @@ textarea{font:inherit}
           <input type="file" id="lbDir" webkitdirectory multiple style="display:none" onchange="importFiles(this.files);this.value=''">
           <h3 style="color:#6b5a3e">دروس هذا القسم</h3>
           <div id="libList"></div>
+          <h3 style="color:#6b5a3e;margin-top:18px">كتب هذا الشيخ (PDF)</h3>
+          <button class="pri" style="width:auto" onclick="$('lbPdf').click()">رفع كتب PDF</button>
+          <input type="file" id="lbPdf" multiple accept=".pdf,application/pdf" style="display:none" onchange="importBooks(this.files);this.value=''">
+          <div id="bookList"></div>
         </div>
       </div>
 
@@ -271,7 +275,7 @@ const LSEC_NAMES={tafsir:'التفسير: القرآن وعلومه',hadith:'ا�
 const LBUCKET='library-media';
 const AUDIO_RE=/\.(mp3|m4a|wav|ogg|aac|mp4|webm|pdf)$/i;
 const natCmp=new Intl.Collator('en',{numeric:true,sensitivity:'base'}).compare;
-let LIBS=[], LIBL=[];
+let LIBS=[], LIBL=[], LIBB=[];
 
 function libMsg(t,ok){$('libMsg').className=ok?'ok':'msg';$('libMsg').textContent=t}
 
@@ -282,16 +286,55 @@ function openLib(){
 }
 
 async function loadLibAdmin(){
-  const [a,b]=await Promise.all([
+  const [a,b,c]=await Promise.all([
     db.from('library_scholars').select('slug,name,sort_order').order('sort_order',{ascending:true}),
-    db.from('library_lessons').select('id,scholar_slug,section,lesson_no,title,file_path').order('lesson_no',{ascending:true})
+    db.from('library_lessons').select('id,scholar_slug,section,lesson_no,title,file_path').order('lesson_no',{ascending:true}),
+    db.from('library_books').select('id,scholar_slug,title,file_path').order('created_at',{ascending:true})
   ]);
   if(a.error||b.error){libMsg('تعذّر التحميل: '+(a.error||b.error).message);return}
-  LIBS=a.data||[]; LIBL=b.data||[];
+  LIBS=a.data||[]; LIBL=b.data||[]; LIBB=c.data||[];
   const cur=$('lbSch').value;
   $('lbSch').innerHTML=LIBS.map(s=>`<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('')||'<option value="">لا يوجد شيوخ بعد، أضف شيخاً</option>';
   if(cur) $('lbSch').value=cur;
   renderLibList();
+  renderBookList();
+}
+
+function renderBookList(){
+  const sch=$('lbSch').value;
+  const rows=LIBB.filter(b=>b.scholar_slug===sch);
+  $('bookList').innerHTML=rows.map(b=>`<div class="item"><b>${esc(b.title||'كتاب')}</b> <span class="note">${esc(b.file_path)}</span><br><button class="sm del" onclick="delBook(${b.id},'${esc(b.file_path)}')">حذف</button></div>`).join('')
+    ||'<p class="note">لا توجد كتب لهذا الشيخ بعد</p>';
+}
+
+async function importBooks(fileList){
+  const sch=$('lbSch').value;
+  if(!sch){libMsg('أضف شيخاً أولاً');return}
+  const files=[...fileList].filter(f=>/\.pdf$/i.test(f.name)).sort((a,b)=>natCmp(a.name,b.name));
+  if(!files.length){libMsg('اختر ملفات PDF فقط');return}
+  const rows=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    const path=`${sch}/books/${Date.now()}-${i}-${Math.random().toString(36).slice(2,6)}.pdf`;
+    libMsg(`جارٍ رفع الكتاب ${i+1} من ${files.length}…`,true);
+    const up=await db.storage.from(LBUCKET).upload(path,f,{contentType:'application/pdf',upsert:false});
+    if(up.error){libMsg(`توقف عند الملف ${i+1}: `+up.error.message);break}
+    rows.push({scholar_slug:sch,title:f.name.replace(/\.pdf$/i,''),file_path:path,mime:'application/pdf'});
+  }
+  if(rows.length){
+    const {error}=await db.from('library_books').insert(rows);
+    if(error){libMsg('رُفعت الملفات لكن تعذّر تسجيلها: '+error.message);return}
+  }
+  libMsg(`تم رفع ${rows.length} كتاب ✓`,true);
+  loadLibAdmin();
+}
+
+async function delBook(id,path){
+  if(!confirm('حذف هذا الكتاب نهائياً؟')) return;
+  const {error}=await db.from('library_books').delete().eq('id',id);
+  if(error){libMsg('تعذّر الحذف: '+error.message);return}
+  await db.storage.from(LBUCKET).remove([path]);
+  loadLibAdmin();
 }
 
 function renderLibList(){

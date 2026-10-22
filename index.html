@@ -107,12 +107,13 @@ async function loadLib(){
   if(LIB.loading) return; LIB.loading=true;
   for(let i=0;i<50&&!window.SB;i++) await new Promise(r=>setTimeout(r,200));
   if(!window.SB){LIB.loading=false;LIB.err='تعذّر الاتصال بالخادم';LIB.ready=true;go();return}
-  const [a,b]=await Promise.all([
+  const [a,b,c]=await Promise.all([
     window.SB.from('library_scholars').select('slug,name,sort_order').order('sort_order',{ascending:true}),
-    window.SB.from('library_lessons').select('scholar_slug,section,lesson_no,title,file_path,mime').order('lesson_no',{ascending:true})
+    window.SB.from('library_lessons').select('scholar_slug,section,lesson_no,title,file_path,mime').order('lesson_no',{ascending:true}),
+    window.SB.from('library_books').select('id,scholar_slug,title,file_path').order('created_at',{ascending:true})
   ]);
   LIB.err=(a.error||b.error)?(a.error||b.error).message:'';
-  LIB.sch=a.data||[]; LIB.les=b.data||[];
+  LIB.sch=a.data||[]; LIB.les=b.data||[]; LIB.books=c.data||[];
   LIB.ready=true; LIB.loading=false; go();
 }
 function lesCard(l){
@@ -166,6 +167,57 @@ async function loadBanners(){
   BANNERS={};
   data.forEach(b=>BANNERS[b.key]=window.SB.storage.from('site-banners').getPublicUrl(b.image_path).data.publicUrl);
   go();
+}
+const LCOLS=['#1b6b3a','#2456a6','#d9822b','#6a3d9a','#13857a','#a8323e','#9a6b12','#2c3e6b','#8c2f6b'];
+let LSUB='les';
+function bookCard(b,i){
+  const url=lessonUrl(b.file_path);
+  return `<div class="bookCard" style="--c:${LCOLS[i%LCOLS.length]}"><div class="bookIco">PDF</div><div class="bookTxt"><b>${esc(b.title||'كتاب')}</b><a class="bookBtn" href="${url}" target="_blank" rel="noopener">فتح الكتاب</a></div></div>`;
+}
+function lessonsBlock(slug){
+  const secs=LSECS.filter(([k])=>lesOf(slug,k).length);
+  if(!secs.length) return '<div class="card note">لا توجد دروس صوتية لهذا الشيخ بعد.</div>';
+  return secs.map(([k,n],i)=>`<div class="ribbon" style="--c:${LCOLS[i%LCOLS.length]}">${n}</div>`+lesOf(slug,k).map(lesCard).join('')).join('');
+}
+function booksBlock(slug){
+  const bs=LIB.books.filter(b=>b.scholar_slug===slug);
+  return bs.length?`<div class="bookGrid">${bs.map((b,i)=>bookCard(b,i)).join('')}</div>`:'<div class="card note">لا توجد كتب لهذا الشيخ بعد.</div>';
+}
+function libraryPageV2(){
+  if(!LIB.ready){
+    loadLib();
+    return `<div class="fatWrap">${libHeader()}<div class="card note">جارٍ تحميل المكتبة…</div></div>`;
+  }
+  const tabs=`<div class="libTabs"><button class="${LV==='sch'?'on':''}" onclick="LV='sch';LSCH=null;LSEC=null;go()">حسب المشايخ</button><button class="${LV==='sec'?'on':''}" onclick="LV='sec';LSCH=null;LSEC=null;go()">حسب الأقسام</button></div>`;
+  let body='';
+  if(LIB.err){
+    body=`<div class="card note">تعذّر تحميل المكتبة: ${esc(LIB.err)}</div>`;
+  } else if(LV==='sch'){
+    if(LSCH){
+      const idx=LIB.sch.findIndex(x=>x.slug===LSCH);
+      const s=LIB.sch[idx];
+      const c=LCOLS[(idx<0?0:idx)%LCOLS.length];
+      const subTabs=`<div class="subTabs"><button class="${LSUB==='les'?'on':''}" onclick="LSUB='les';go()">الدروس الصوتية</button><button class="${LSUB==='books'?'on':''}" onclick="LSUB='books';go()">الكتب</button></div>`;
+      const content=LSUB==='books'?booksBlock(LSCH):lessonsBlock(LSCH);
+      body=`<button class="backBtn" onclick="LSCH=null;go()">← كل المشايخ</button><div class="ribbon big" style="--c:${c}">${esc(s?s.name:'')}</div>${subTabs}${content}`;
+    } else {
+      body=LIB.sch.length
+        ?`<div class="lgrid">${LIB.sch.map((s,i)=>`<button class="lbtn" style="--c:${LCOLS[i%LCOLS.length]}" onclick="LSCH='${s.slug}';LSUB='les';go()">${esc(s.name)}<small>${lesOf(s.slug).length} درس · ${LIB.books.filter(b=>b.scholar_slug===s.slug).length} كتاب</small></button>`).join('')}</div>`
+        :'<div class="card note">لا يوجد مشايخ بعد.</div>';
+    }
+  } else {
+    if(LSEC){
+      const withLes=LIB.sch.filter(s=>lesOf(s.slug,LSEC).length);
+      body=`<button class="backBtn" onclick="LSEC=null;go()">← كل الأقسام</button><div class="ribbon big" style="--c:#1b6b3a">${secName(LSEC)}</div>`
+        +(withLes.map((s,i)=>`<div class="ribbon" style="--c:${LCOLS[i%LCOLS.length]}">${esc(s.name)}</div>`+lesOf(s.slug,LSEC).map(lesCard).join('')).join('')||'<div class="card note">لا توجد دروس في هذا القسم بعد.</div>');
+    } else {
+      const used=LSECS.filter(([k])=>LIB.les.some(l=>l.section===k));
+      body=used.length
+        ?`<div class="lgrid">${used.map(([k,n],i)=>`<button class="lbtn" style="--c:${LCOLS[i%LCOLS.length]}" onclick="LSEC='${k}';go()">${n}<small>${LIB.les.filter(l=>l.section===k).length} درس</small></button>`).join('')}</div>`
+        :'<div class="card note">لا توجد دروس بعد.</div>';
+    }
+  }
+  return `<div class="fatWrap">${libHeader()}${tabs}${body}</div>`;
 }
 let FV='', FAT_LIST=[];
 const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRIMAHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
@@ -238,7 +290,7 @@ function instPage(){return `<div class="row"><a class="btn" href="dashboard.html
  return h}
 function addIn(){const v=[1,2,3,4].map(k=>document.getElementById('i'+k).value.trim());if(v[0]&&v[1])S.inst.push({n:v[0],g:v[1],p:v[2],cl:v[3],adm:false});go()}
 const R={'':()=>(BANNERS['home-hero']?banner('home-hero'):`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p></div>`)+`${tiles(MAIN)}<div class="band"></div><h1 style="text-align:center">فروع المنظمة</h1>${tiles(BR,'g')}`,
- library:libraryPage,fatwa:fatPage,halaqat:halPage,
+ library:libraryPageV2,fatwa:fatPage,halaqat:halPage,
  articles:()=>sec('مقالات',[]),consult:()=>sec('استشارات',[],'صفحات تعالج المواضيع الاجتماعية. ستظهر هنا الاستشارات عند نشرها.'),
  history:()=>sec('تاريخ',[]),
  branches:branchesPage,institute:instPage,quran:quranPage,women:womenPage,itqan:itqanPage,reports:reportsPage,
@@ -294,7 +346,20 @@ function injectFatCss(){const st=document.createElement('style');st.textContent=
 @keyframes adminShine{0%,55%{left:-75%}100%{left:130%}}
 @keyframes adminGlow{0%,100%{box-shadow:0 6px 18px rgba(201,160,74,.45)}50%{box-shadow:0 6px 28px rgba(251,176,64,.85)}}
 .adBanner{margin:8px 0 14px;border-radius:18px;overflow:hidden;border:2px solid #c9a04a;box-shadow:0 8px 22px rgba(18,61,36,.18)}
-.adBanner img{display:block;width:100%;height:auto}
+.adBanner img{display:block;width:100%;height:200px;object-fit:cover}
+@media(max-width:600px){.adBanner img{height:170px}}
+.libHead::after{content:"";position:absolute;inset:8px;border:1px solid rgba(240,196,106,.5);border-radius:12px;pointer-events:none}
+.ribbon{display:block;margin:22px 0 8px;padding:10px 20px;border-radius:10px 40px 10px 40px;background:linear-gradient(120deg,var(--c,#1b6b3a),#2a0b0b);color:#fff;font-weight:800;font-size:18px;box-shadow:0 6px 16px rgba(0,0,0,.18);border-inline-start:6px solid #f0c46a}
+.ribbon.big{font-size:24px;padding:14px 22px;margin:8px 0 12px}
+.subTabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.subTabs button{background:#fff;border:2px solid #c9a04a;color:#6b5a3e;border-radius:999px;padding:7px 16px;font:inherit;font-weight:700;cursor:pointer}
+.subTabs button.on{background:#1b6b3a;color:#fff;border-color:#1b6b3a}
+.bookGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.bookCard{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid #e8d3a2;border-top:5px solid var(--c,#1b6b3a);border-radius:14px;padding:14px}
+.bookIco{flex:none;width:52px;height:64px;border-radius:6px;background:var(--c,#1b6b3a);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:14px;letter-spacing:.05em;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2)}
+.bookTxt{min-width:0;flex:1;display:flex;flex-direction:column;gap:8px}
+.bookTxt b{color:#2b1d0e;word-break:break-word}
+.bookBtn{align-self:flex-start;background:var(--c,#1b6b3a);color:#fff;text-decoration:none;border-radius:999px;padding:7px 16px;font-weight:700;font-size:14px}
 .fatWrap{background:#fbf6e9 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><path d='M40 8l7 14 15 2-11 11 3 15-14-7-14 7 3-15-11-11 15-2z' fill='none' stroke='%23c9a04a' stroke-opacity='.16' stroke-width='1.2'/><circle cx='0' cy='0' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/><circle cx='80' cy='80' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/></svg>");border:1px solid #e8d3a2;border-radius:18px;padding:12px}
 `;document.head.appendChild(st)}
 async function showAdminLink(){
