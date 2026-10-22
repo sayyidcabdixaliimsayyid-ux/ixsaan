@@ -10,9 +10,12 @@ header{background:linear-gradient(120deg,#123d24,#1b6b3a);color:#fff;padding:14p
 header h1{margin:0;font-size:20px}
 header a,header button{color:#fbb040;font-size:14px;text-decoration:none;background:none;border:0;cursor:pointer;font:inherit}
 .wrap{padding:14px;max-width:900px;margin:0 auto}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;max-width:1200px;margin:0 auto;padding:14px;align-items:start}
+.rightCol,.leftCol{min-width:0}
+@media (max-width:800px){.layout{grid-template-columns:minmax(0,1fr)}}
 .card{background:#fff;border:1px solid #e8d3a2;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 4px 12px rgba(0,0,0,.05)}
 .card h2{margin:0 0 10px;font-size:18px;color:#1b6b3a}
-.sections{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.sections{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .sec{background:#fbf7ee;border:1px solid #e8d3a2;border-radius:12px;padding:14px;text-align:center}
 .sec.soon{color:#6b5a3e;opacity:.8}
 input{font:inherit;padding:9px;border:1px solid #e8d3a2;border-radius:8px;width:100%;box-sizing:border-box;margin-top:8px}
@@ -25,6 +28,7 @@ button.pri{font:inherit;background:#1b6b3a;color:#fff;border:0;border-radius:10p
 .sm.del{background:#b3261e}
 .ok{color:#1b6b3a;font-weight:700}
 textarea{font:inherit}
+.qInTitle{color:#c0392b;font-weight:700}
 </style>
 </head>
 <body>
@@ -43,42 +47,54 @@ textarea{font:inherit}
   </div>
 </div>
 
-<div id="app" class="wrap hidden">
-  <div class="card">
-    <h2>الأقسام</h2>
-    <p class="note">كل قسم يُفعَّل بعد تجهيز جدوله. ستظهر هنا نماذج الإضافة والتعديل والحذف لكل قسم.</p>
-    <div class="sections">
-      <div class="sec soon">المكتبة<br><small>قريباً</small></div>
-      <div class="sec" style="cursor:pointer" onclick="openFatwa()">الفتاوى<br><small>إدارة</small></div>
-      <div class="sec soon">المقالات<br><small>قريباً</small></div>
-      <div class="sec soon">الحلقات<br><small>قريباً</small></div>
-      <div class="sec soon">الاستشارات<br><small>قريباً</small></div>
-      <div class="sec soon">التاريخ<br><small>قريباً</small></div>
-      <div class="sec soon">الأخبار والإعلانات<br><small>قريباً</small></div>
-      <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
-    </div>
-  </div>
-</div>
+<div id="app" class="hidden">
+  <div class="layout">
 
-<div id="fatwaBox" class="wrap hidden">
-  <div class="card">
-    <h2>الفتاوى</h2>
-    <h3 style="margin:4px 0;color:#6b5a3e">الأسئلة الواردة من الزوار</h3>
-    <div id="qInboxMsg" class="msg"></div>
-    <div id="inbox"></div>
-    <hr style="border:0;border-top:2px solid #e8d3a2;margin:16px 0">
-    <h3 id="fFormTitle" style="margin:4px 0;color:#6b5a3e">إضافة فتوى جديدة</h3>
-    <select id="fCat" style="width:100%;padding:9px;margin-top:8px;font:inherit;border:1px solid #e8d3a2;border-radius:8px">
-      <option>CAQIIDADA</option><option>SALAADDA</option><option>DAHAARADA</option><option>SOONKA</option><option>ZAKADA</option><option>XAJKA</option><option>ARRIMAHA QOYSKA</option><option>NIKAAXA</option><option>BAYCA IYO MUCAAMALAATKA</option>
-    </select>
-    <input id="fQ" placeholder="السؤال">
-    <textarea id="fA" rows="5" placeholder="الجواب" style="width:100%;margin-top:8px;padding:9px;border:1px solid #e8d3a2;border-radius:8px;box-sizing:border-box"></textarea>
-    <label style="display:block;margin-top:8px"><input type="checkbox" id="fPub" checked style="width:auto"> منشورة للزوار</label>
-    <button class="pri" onclick="saveFatwa()">حفظ</button>
-    <button class="pri" style="background:#6b5a3e" onclick="resetFatwa()">فتوى جديدة</button>
-    <div id="fMsg" class="msg"></div>
-    <h3 style="color:#6b5a3e">كل الفتاوى</h3>
-    <div id="fList"></div>
+    <!-- اليمين: الأقسام وإدارة الفتاوى -->
+    <div class="rightCol">
+      <div class="card">
+        <h2>الأقسام</h2>
+        <p class="note">كل قسم يُفعَّل بعد تجهيز جدوله. ستظهر هنا نماذج الإضافة والتعديل والحذف لكل قسم.</p>
+        <div class="sections">
+          <div class="sec soon">المكتبة<br><small>قريباً</small></div>
+          <div class="sec" style="cursor:pointer" onclick="openFatwa()">الفتاوى<br><small>إدارة</small></div>
+          <div class="sec soon">المقالات<br><small>قريباً</small></div>
+          <div class="sec soon">الحلقات<br><small>قريباً</small></div>
+          <div class="sec soon">الاستشارات<br><small>قريباً</small></div>
+          <div class="sec soon">التاريخ<br><small>قريباً</small></div>
+          <div class="sec soon">الأخبار والإعلانات<br><small>قريباً</small></div>
+          <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
+        </div>
+      </div>
+
+      <div id="fatwaBox" class="hidden">
+        <div class="card">
+          <h2>الفتاوى</h2>
+          <h3 id="fFormTitle" style="margin:4px 0;color:#6b5a3e">إضافة فتوى جديدة</h3>
+          <select id="fCat" style="width:100%;padding:9px;margin-top:8px;font:inherit;border:1px solid #e8d3a2;border-radius:8px">
+            <option>CAQIIDADA</option><option>SALAADDA</option><option>DAHAARADA</option><option>SOONKA</option><option>ZAKADA</option><option>XAJKA</option><option>ARRIMAHA QOYSKA</option><option>NIKAAXA</option><option>BAYCA IYO MUCAAMALAATKA</option>
+          </select>
+          <input id="fQ" placeholder="السؤال">
+          <textarea id="fA" rows="5" placeholder="الجواب" style="width:100%;margin-top:8px;padding:9px;border:1px solid #e8d3a2;border-radius:8px;box-sizing:border-box"></textarea>
+          <label style="display:block;margin-top:8px"><input type="checkbox" id="fPub" checked style="width:auto"> منشورة للزوار</label>
+          <button class="pri" onclick="saveFatwa()">حفظ</button>
+          <button class="pri" style="background:#6b5a3e" onclick="resetFatwa()">فتوى جديدة</button>
+          <div id="fMsg" class="msg"></div>
+          <h3 style="color:#6b5a3e">كل الفتاوى</h3>
+          <div id="fList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- اليسار: أسئلة الزوار -->
+    <div class="leftCol">
+      <div class="card">
+        <h2 class="qInTitle">الأسئلة الواردة من الزوار</h2>
+        <div id="qInboxMsg" class="msg"></div>
+        <div id="inbox"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -104,6 +120,7 @@ async function enter(){
   $('gate').classList.add('hidden');
   $('app').classList.remove('hidden');
   $('logoutBtn').classList.remove('hidden');
+  loadInbox();
 }
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -111,8 +128,7 @@ let FATS=[], editingId=null;
 
 function openFatwa(){
   $('fatwaBox').classList.remove('hidden');
-  $('fatwaBox').scrollIntoView({behavior:'smooth'});
-  loadInbox();
+  $('fatwaBox').scrollIntoView({behavior:'smooth',block:'start'});
   loadFatwas();
 }
 
@@ -140,7 +156,7 @@ function editFatwa(id){
   $('fA').value=f.answer||'';
   $('fPub').checked=!!f.published;
   $('fFormTitle').textContent='تعديل فتوى';
-  $('fatwaBox').scrollIntoView({behavior:'smooth'});
+  $('fatwaBox').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function resetFatwa(){
@@ -176,7 +192,7 @@ async function loadInbox(){
   if(error){$('qInboxMsg').className='msg';$('qInboxMsg').textContent='تعذّر تحميل الأسئلة: '+error.message;return}
   $('inbox').innerHTML=(data||[]).map(q=>`<div class="item">
     <div class="note">#${q.id} — ${esc(q.asker_name||'بدون اسم')} ${esc(q.asker_contact||'')}</div>
-    <div style="font-size:16px;white-space:pre-wrap;line-height:1.9">${esc(q.question)}</div>
+    <div style="font-size:16px;white-space:pre-wrap;line-height:1.9;color:#c0392b;font-weight:700">${esc(q.question)}</div>
     <select id="fo${q.id}" style="width:100%;padding:8px;margin-top:6px;font:inherit;border:1px solid #e8d3a2;border-radius:8px">
       ${FOLDERS.map(f=>`<option>${f}</option>`).join('')}
     </select>

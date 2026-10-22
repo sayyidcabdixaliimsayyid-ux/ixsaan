@@ -109,10 +109,10 @@ async function sendQ(){
 function fatPage(){
   if(FV){
     const list=FAT_LIST.filter(f=>f.category===FV).sort((a,b)=>a.id-b.id);
-    return `<h1>الفتاوى</h1><button class="backBtn" onclick="FV='';go()">← كل الأقسام</button><h2 class="fold">${esc(FV)}</h2>`+(list.map(qaCard).join('')||'<div class="card note">لا توجد أسئلة في هذا القسم بعد.</div>');
+    return `<div class="fatWrap"><h1>الفتاوى</h1><button class="backBtn" onclick="FV='';go()">← كل الأقسام</button><h2 class="fold">${esc(FV)}</h2>`+(list.map(qaCard).join('')||'<div class="card note">لا توجد أسئلة في هذا القسم بعد.</div>')+'</div>';
   }
   const latest=FAT_LIST.slice().sort((a,b)=>b.id-a.id).slice(0,5);
-  return `<h1>الفتاوى</h1>
+  return `<div class="fatWrap"><h1>الفتاوى</h1>
   <div class="askBig" onclick="openAsk()">اطرح سؤالك<span class="sw">WAYDII SUAAL</span></div>
   <div id="askForm" class="askForm" style="display:none">
     <textarea id="qText" class="qArea" placeholder="اكتب سؤالك هنا"></textarea>
@@ -123,7 +123,7 @@ function fatPage(){
   <h3 class="sub">الأقسام</h3>
   <div class="folders">${FOLDERS.map(k=>`<button class="folder" onclick="FV='${k}';go()">${k}<small>${FAT_LIST.filter(f=>f.category===k).length} سؤال</small></button>`).join('')}</div>
   <h3 class="sub">آخر الأسئلة</h3>
-  ${latest.map(qaCard).join('')||'<div class="card note">لا توجد أسئلة منشورة بعد.</div>'}`;
+  ${latest.map(qaCard).join('')||'<div class="card note">لا توجد أسئلة منشورة بعد.</div>'}</div>`;
 }
 function fatPageOld(){return`<h1>الفتاوى</h1><div class="chips">${Object.keys(FAT).map(k=>`<button class="chip ${k==fcat?'on':''}" onclick="fcat='${k}';go()">${k}</button>`).join('')}</div>`+(FAT[fcat]||[]).map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}
 const HAL=['العقيدة','الفقه','الحديث','القرآن وعلومه','مصطلح الحديث','أصول الفقه','النحو والصرف','اللغة والأدب'];
@@ -178,16 +178,23 @@ function injectFatCss(){const st=document.createElement('style');st.textContent=
 .askForm input{flex:1;min-width:160px;padding:10px;border:1px solid #e8d3a2;border-radius:8px;font:inherit}
 .sendBtn{width:100%;margin-top:10px;background:#c9a04a;color:#fff;border:0;border-radius:10px;padding:14px;font:inherit;font-weight:700;font-size:18px;cursor:pointer}
 .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
-.folder{background:#fff;border:1px solid #e8d3a2;border-radius:12px;padding:14px;font:inherit;font-weight:700;cursor:pointer;text-align:center}
-.folder small{display:block;font-weight:400;color:#6b5a3e}
+.folder{position:relative;overflow:hidden;background:var(--c,#1b6b3a);color:#fff;border:0;border-radius:12px;padding:16px;font:inherit;font-weight:700;cursor:pointer;text-align:center;transition:transform .2s,box-shadow .2s}
+.folder:nth-child(9n+1){--c:#1b6b3a}.folder:nth-child(9n+2){--c:#2456a6}.folder:nth-child(9n+3){--c:#d9822b}.folder:nth-child(9n+4){--c:#6a3d9a}.folder:nth-child(9n+5){--c:#13857a}.folder:nth-child(9n+6){--c:#a8323e}.folder:nth-child(9n+7){--c:#9a6b12}.folder:nth-child(9n+8){--c:#2c3e6b}.folder:nth-child(9n+9){--c:#8c2f6b}
+.folder::after{content:"";position:absolute;top:0;bottom:0;left:-70%;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.7),transparent);transform:skewX(-20deg);pointer-events:none}
+.folder:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.22),0 0 16px var(--c)}
+.folder:hover::after{left:130%;transition:left .7s}
+.folder small{display:block;font-weight:400;color:rgba(255,255,255,.9)}
 .qa{background:#fff;border:1px solid #e8d3a2;border-radius:14px;padding:18px 20px;margin:12px 0;width:100%}
 .qnum{color:#6b5a3e;font-size:13px;margin-bottom:6px}
 .tag{display:inline-block;background:#c0392b;color:#fff;font-weight:800;padding:3px 14px;border-radius:4px;margin-bottom:8px}
 .qtext,.atext{font-size:18px;line-height:2;white-space:pre-wrap;word-break:break-word;min-height:4em}
+.qtext{color:#c0392b;font-weight:700}
+.atext{color:#2b1d0e}
 .qline{border:0;border-top:2px solid #e8d3a2;margin:12px 0}
 .fold{color:#1b6b3a}
 .backBtn{background:none;border:0;color:#1b6b3a;font:inherit;cursor:pointer;padding:6px 0;font-size:16px}
 .sub{color:#6b5a3e;margin:18px 0 6px}
+.fatWrap{background:#fbf6e9 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><path d='M40 8l7 14 15 2-11 11 3 15-14-7-14 7 3-15-11-11 15-2z' fill='none' stroke='%23c9a04a' stroke-opacity='.16' stroke-width='1.2'/><circle cx='0' cy='0' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/><circle cx='80' cy='80' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/></svg>");border:1px solid #e8d3a2;border-radius:18px;padding:12px}
 `;document.head.appendChild(st)}
 function loadFat(){injectFatCss();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';s.onload=async()=>{window.SB=supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co','sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');const {data,error}=await window.SB.from('fatwas').select('id,category,question,answer').eq('published',true).order('id',{ascending:true});if(error||!data)return;FAT_LIST=data;go()};document.head.appendChild(s)}
 </script>
