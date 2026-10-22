@@ -56,7 +56,7 @@ textarea{font:inherit}
         <h2>الأقسام</h2>
         <p class="note">كل قسم يُفعَّل بعد تجهيز جدوله. ستظهر هنا نماذج الإضافة والتعديل والحذف لكل قسم.</p>
         <div class="sections">
-          <div class="sec soon">المكتبة<br><small>قريباً</small></div>
+          <div class="sec" style="cursor:pointer" onclick="openLib()">المكتبة<br><small>إدارة</small></div>
           <div class="sec" style="cursor:pointer" onclick="openFatwa()">الفتاوى<br><small>إدارة</small></div>
           <div class="sec soon">المقالات<br><small>قريباً</small></div>
           <div class="sec soon">الحلقات<br><small>قريباً</small></div>
@@ -64,6 +64,32 @@ textarea{font:inherit}
           <div class="sec soon">التاريخ<br><small>قريباً</small></div>
           <div class="sec soon">الأخبار والإعلانات<br><small>قريباً</small></div>
           <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
+        </div>
+      </div>
+
+      <div id="libBox" class="hidden">
+        <div class="card">
+          <h2>المكتبة: دروس العلماء</h2>
+          <div id="libMsg" class="msg"></div>
+          <h3 style="color:#6b5a3e;margin:4px 0">إضافة شيخ</h3>
+          <input id="lbNewSch" placeholder="اسم الشيخ الكامل">
+          <button class="pri" onclick="addScholar()">إضافة الشيخ</button>
+          <hr style="border:0;border-top:2px solid #e8d3a2;margin:16px 0">
+          <label class="note">الشيخ</label>
+          <select id="lbSch" onchange="renderLibList()" style="width:100%;padding:9px;margin-top:4px;font:inherit;border:1px solid #e8d3a2;border-radius:8px"></select>
+          <label class="note" style="display:block;margin-top:8px">القسم</label>
+          <select id="lbSec" onchange="renderLibList()" style="width:100%;padding:9px;margin-top:4px;font:inherit;border:1px solid #e8d3a2;border-radius:8px">
+            <option value="tafsir">التفسير: القرآن وعلومه</option><option value="hadith">الحديث</option><option value="fiqh">الفقه</option><option value="nahw">النحو</option><option value="sarf">الصرف</option><option value="adab">الأدب</option><option value="balagha">البلاغة</option><option value="aqida">العقيدة</option><option value="usul">أصول الفقه</option><option value="arud">العروض</option><option value="jadal">الجدل</option><option value="faraid">الفرائض</option><option value="mantiq">المنطق</option>
+          </select>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <button class="pri" style="width:auto;flex:1" onclick="$('lbFiles').click()">رفع ملفات</button>
+            <button class="pri" style="width:auto;flex:1;background:#6b5a3e" onclick="$('lbDir').click()">استيراد مجلد كامل</button>
+          </div>
+          <p class="note">تُرتَّب الملفات بالاسم تلقائياً وتُسمّى «الدرس 1، الدرس 2…». تُقبل ملفات الصوت (mp3، m4a، wav…) والفيديو (mp4، webm) وPDF.</p>
+          <input type="file" id="lbFiles" multiple accept="audio/*,video/*,application/pdf" style="display:none" onchange="importFiles(this.files);this.value=''">
+          <input type="file" id="lbDir" webkitdirectory multiple style="display:none" onchange="importFiles(this.files);this.value=''">
+          <h3 style="color:#6b5a3e">دروس هذا القسم</h3>
+          <div id="libList"></div>
         </div>
       </div>
 
@@ -221,6 +247,84 @@ async function rejectQ(id){
   const {error}=await db.from('fatwa_questions').update({status:'rejected'}).eq('id',id);
   if(error){$('qInboxMsg').textContent='تعذّر الرفض: '+error.message;return}
   loadInbox();
+}
+
+const LSECS=['tafsir','hadith','fiqh','nahw','sarf','adab','balagha','aqida','usul','arud','jadal','faraid','mantiq'];
+const LSEC_NAMES={tafsir:'التفسير: القرآن وعلومه',hadith:'الحديث',fiqh:'الفقه',nahw:'النحو',sarf:'الصرف',adab:'الأدب',balagha:'البلاغة',aqida:'العقيدة',usul:'أصول الفقه',arud:'العروض',jadal:'الجدل',faraid:'الفرائض',mantiq:'المنطق'};
+const LBUCKET='library-media';
+const AUDIO_RE=/\.(mp3|m4a|wav|ogg|aac|mp4|webm|pdf)$/i;
+const natCmp=new Intl.Collator('en',{numeric:true,sensitivity:'base'}).compare;
+let LIBS=[], LIBL=[];
+
+function libMsg(t,ok){$('libMsg').className=ok?'ok':'msg';$('libMsg').textContent=t}
+
+function openLib(){
+  $('libBox').classList.remove('hidden');
+  $('libBox').scrollIntoView({behavior:'smooth',block:'start'});
+  loadLibAdmin();
+}
+
+async function loadLibAdmin(){
+  const [a,b]=await Promise.all([
+    db.from('library_scholars').select('slug,name,sort_order').order('sort_order',{ascending:true}),
+    db.from('library_lessons').select('id,scholar_slug,section,lesson_no,title,file_path').order('lesson_no',{ascending:true})
+  ]);
+  if(a.error||b.error){libMsg('تعذّر التحميل: '+(a.error||b.error).message);return}
+  LIBS=a.data||[]; LIBL=b.data||[];
+  const cur=$('lbSch').value;
+  $('lbSch').innerHTML=LIBS.map(s=>`<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('')||'<option value="">لا يوجد شيوخ بعد، أضف شيخاً</option>';
+  if(cur) $('lbSch').value=cur;
+  renderLibList();
+}
+
+function renderLibList(){
+  const sch=$('lbSch').value, sec=$('lbSec').value;
+  const rows=LIBL.filter(l=>l.scholar_slug===sch&&l.section===sec);
+  $('libList').innerHTML=rows.map(l=>`<div class="item"><b>${esc(l.title||'الدرس '+l.lesson_no)}</b> <span class="note">${esc(l.file_path)}</span><br><button class="sm del" onclick="delLesson(${l.id},'${esc(l.file_path)}')">حذف</button></div>`).join('')
+    ||'<p class="note">لا توجد دروس في هذا القسم لهذا الشيخ</p>';
+}
+
+async function addScholar(){
+  const name=$('lbNewSch').value.trim();
+  if(!name){libMsg('اكتب اسم الشيخ أولاً');return}
+  const slug='s-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  const {error}=await db.from('library_scholars').insert({slug,name,sort_order:LIBS.length+1});
+  if(error){libMsg('تعذّر الإضافة: '+error.message);return}
+  $('lbNewSch').value='';
+  libMsg('تمت إضافة الشيخ ✓',true);
+  loadLibAdmin();
+}
+
+async function importFiles(fileList){
+  const sch=$('lbSch').value, sec=$('lbSec').value;
+  if(!sch){libMsg('أضف شيخاً أولاً');return}
+  const files=[...fileList].filter(f=>AUDIO_RE.test(f.name)).sort((a,b)=>natCmp(a.name,b.name));
+  if(!files.length){libMsg('لا توجد ملفات صوت أو فيديو أو PDF مناسبة');return}
+  const next=Math.max(0,...LIBL.filter(l=>l.scholar_slug===sch&&l.section===sec).map(l=>l.lesson_no))+1;
+  const rows=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    const ext=(f.name.split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
+    const path=`${sch}/${sec}/${Date.now()}-${i}-${Math.random().toString(36).slice(2,6)}.${ext}`;
+    libMsg(`جارٍ الرفع ${i+1} من ${files.length}…`,true);
+    const up=await db.storage.from(LBUCKET).upload(path,f,{contentType:f.type||undefined,upsert:false});
+    if(up.error){libMsg(`توقف عند الملف ${i+1}: `+up.error.message);break}
+    rows.push({scholar_slug:sch,section:sec,lesson_no:next+i,title:'الدرس '+(next+i),file_path:path,mime:f.type||null});
+  }
+  if(rows.length){
+    const {error}=await db.from('library_lessons').insert(rows);
+    if(error){libMsg('رُفعت الملفات لكن تعذّر تسجيلها: '+error.message);return}
+  }
+  libMsg(`تم رفع ${rows.length} درس ✓`,true);
+  loadLibAdmin();
+}
+
+async function delLesson(id,path){
+  if(!confirm('حذف هذا الدرس نهائياً؟')) return;
+  const {error}=await db.from('library_lessons').delete().eq('id',id);
+  if(error){libMsg('تعذّر الحذف: '+error.message);return}
+  await db.storage.from(LBUCKET).remove([path]);
+  loadLibAdmin();
 }
 
 async function logout(){
