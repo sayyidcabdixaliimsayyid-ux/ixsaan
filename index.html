@@ -221,7 +221,7 @@ function instPage(){return `<div class="row"><a class="btn" href="dashboard.html
  if(T){const l=T[1]-T[2];h+=`<div class="stat"><span>عدد الطلاب<b>${T[0]}</b></span><span>المطلوب<b>${money(T[1])}</b></span><span>المسدد<b>${money(T[2])}</b></span><span>المتأخرات<b>${money(l)}</b></span><span>نسبة التحصيل<b>${T[1]?(T[2]/T[1]*100).toFixed(1):0}%</b></span></div>`}
  return h}
 function addIn(){const v=[1,2,3,4].map(k=>document.getElementById('i'+k).value.trim());if(v[0]&&v[1])S.inst.push({n:v[0],g:v[1],p:v[2],cl:v[3],adm:false});go()}
-const R={'':()=>`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p><a class="adminBtn" href="site-admin.html">✦ لوحة إدارة الموقع ✦</a></div>${tiles(MAIN)}<div class="band"></div><h1 style="text-align:center">فروع المنظمة</h1>${tiles(BR,'g')}`,
+const R={'':()=>`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p></div>${tiles(MAIN)}<div class="band"></div><h1 style="text-align:center">فروع المنظمة</h1>${tiles(BR,'g')}`,
  library:libraryPage,fatwa:fatPage,halaqat:halPage,
  articles:()=>sec('مقالات',[]),consult:()=>sec('استشارات',[],'صفحات تعالج المواضيع الاجتماعية. ستظهر هنا الاستشارات عند نشرها.'),
  history:()=>sec('تاريخ',[]),
@@ -279,7 +279,13 @@ function injectFatCss(){const st=document.createElement('style');st.textContent=
 @keyframes adminGlow{0%,100%{box-shadow:0 6px 18px rgba(201,160,74,.45)}50%{box-shadow:0 6px 28px rgba(251,176,64,.85)}}
 .fatWrap{background:#fbf6e9 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><path d='M40 8l7 14 15 2-11 11 3 15-14-7-14 7 3-15-11-11 15-2z' fill='none' stroke='%23c9a04a' stroke-opacity='.16' stroke-width='1.2'/><circle cx='0' cy='0' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/><circle cx='80' cy='80' r='6' fill='none' stroke='%23c9a04a' stroke-opacity='.12'/></svg>");border:1px solid #e8d3a2;border-radius:18px;padding:12px}
 `;document.head.appendChild(st)}
-function loadFat(){injectFatCss();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';s.onload=async()=>{window.SB=supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co','sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');const {data,error}=await window.SB.from('fatwas').select('id,category,question,answer').eq('published',true).order('id',{ascending:true});if(error||!data)return;FAT_LIST=data;go()};document.head.appendChild(s)}
+async function showAdminLink(){
+  try{
+    if(document.getElementById('adminFloat')) return;
+    document.body.insertAdjacentHTML('beforeend','<a id="adminFloat" class="adminBtn" href="site-admin.html" style="position:fixed;bottom:18px;left:18px;margin:0;z-index:999">✦ لوحة إدارة الموقع ✦</a>');
+  }catch(e){}
+}
+function loadFat(){injectFatCss();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';s.onload=async()=>{window.SB=supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co','sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');showAdminLink();const {data,error}=await window.SB.from('fatwas').select('id,category,question,answer').eq('published',true).order('id',{ascending:true});if(error||!data)return;FAT_LIST=data;go()};document.head.appendChild(s)}
 </script>
 </body>
 </html>
