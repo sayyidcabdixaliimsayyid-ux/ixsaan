@@ -347,7 +347,7 @@ function instPage(){return `<div class="row"><a class="btn" href="dashboard.html
  if(T){const l=T[1]-T[2];h+=`<div class="stat"><span>عدد الطلاب<b>${T[0]}</b></span><span>المطلوب<b>${money(T[1])}</b></span><span>المسدد<b>${money(T[2])}</b></span><span>المتأخرات<b>${money(l)}</b></span><span>نسبة التحصيل<b>${T[1]?(T[2]/T[1]*100).toFixed(1):0}%</b></span></div>`}
  return h}
 function addIn(){const v=[1,2,3,4].map(k=>document.getElementById('i'+k).value.trim());if(v[0]&&v[1])S.inst.push({n:v[0],g:v[1],p:v[2],cl:v[3],adm:false});go()}
-const R={'':()=>(BANNERS['home-hero']?banner('home-hero'):`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p></div>`)+`${tiles(MAIN)}<div class="band"></div><h1 style="text-align:center">فروع المنظمة</h1>${tiles(BR,'g')}`,
+const R={'':()=>(BANNERS['home-hero']?banner('home-hero'):`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p></div>`)+`${tiles(MAIN)}<div class="band"></div>${BANNERS['branches-home']?banner('branches-home'):'<h1 style="text-align:center">فروع المنظمة</h1>'}${tiles(BR,'g')}`,
  library:libraryPageV2,fatwa:fatPage,halaqat:halPage,
  articles:()=>sec('مقالات',[]),about:()=>sec('عن المنظمة',[],'سيُنشر هنا تعريف بالمنظمة قريباً.'),zad:()=>sec('زاد الداعية',[],'سيُنشر هنا زاد الداعية قريباً.'),programs:()=>sec('برامج دعوية',[],'سيُنشر هنا برنامج الدعوة قريباً.'),
  branches:branchesPage,institute:instPage,quran:quranPage,women:womenPage,itqan:itqanPage,reports:reportsPage,
