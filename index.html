@@ -159,7 +159,7 @@ function libraryPage(){
   return `<div class="fatWrap">${libHeader()}${tabs}${body}</div>`;
 }
 let BANNERS={};
-const banner=k=>BANNERS[k]?`<div class="adBanner"><img src="${BANNERS[k]}" alt=""></div>`:'';
+const banner=k=>{const d=BANNERS[k],m=BANNERS[k+'-m'];if(!d&&!m)return '';return `<div class="adBanner"><picture>${m?`<source media="(max-width:600px)" srcset="${m}">`:''}<img src="${d||m}" alt=""></picture></div>`};
 async function loadBanners(){
   if(!window.SB) return;
   const {data,error}=await window.SB.from('site_banners').select('key,image_path');
@@ -347,14 +347,14 @@ function instPage(){return `<div class="row"><a class="btn" href="dashboard.html
  if(T){const l=T[1]-T[2];h+=`<div class="stat"><span>عدد الطلاب<b>${T[0]}</b></span><span>المطلوب<b>${money(T[1])}</b></span><span>المسدد<b>${money(T[2])}</b></span><span>المتأخرات<b>${money(l)}</b></span><span>نسبة التحصيل<b>${T[1]?(T[2]/T[1]*100).toFixed(1):0}%</b></span></div>`}
  return h}
 function addIn(){const v=[1,2,3,4].map(k=>document.getElementById('i'+k).value.trim());if(v[0]&&v[1])S.inst.push({n:v[0],g:v[1],p:v[2],cl:v[3],adm:false});go()}
-const R={'':()=>(BANNERS['home-hero']?banner('home-hero'):`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p></div>`)+`${tiles(MAIN)}<div class="band"></div>${BANNERS['branches-home']?banner('branches-home'):'<h1 style="text-align:center">فروع المنظمة</h1>'}${tiles(BR,'g')}`,
+const R={'':()=>((BANNERS['home-hero']||BANNERS['home-hero-m'])?banner('home-hero'):`<div class="hero"><h1>الموقع الرسمي</h1><p>منظمة الإحسان للرعاية الاجتماعية: علم شرعي، فتاوى، حلقات، وأعمال خيرية وتعليمية في كينيا.</p></div>`)+`${tiles(MAIN)}<div class="band"></div>${(BANNERS['branches-home']||BANNERS['branches-home-m'])?banner('branches-home'):'<h1 style="text-align:center">فروع المنظمة</h1>'}${tiles(BR,'g')}`,
  library:libraryPageV2,fatwa:fatPage,halaqat:halPage,
  articles:()=>sec('مقالات',[]),about:()=>sec('عن المنظمة',[],'سيُنشر هنا تعريف بالمنظمة قريباً.'),zad:()=>sec('زاد الداعية',[],'سيُنشر هنا زاد الداعية قريباً.'),programs:()=>sec('برامج دعوية',[],'سيُنشر هنا برنامج الدعوة قريباً.'),
  branches:branchesPage,institute:instPage,quran:quranPage,women:womenPage,itqan:itqanPage,reports:reportsPage,
  seasonal:()=>sec('الدورات الموسمية',[]),dawah:()=>sec('شؤون الدعوة',[]),schools:()=>sec('المدارس الدمجية',[])};
 function go(){const p=(location.hash||'#/').slice(2).split('/'),k=p[0];
  document.getElementById('nav').innerHTML=`<a href="#/" class="${k?'':'on'}">الرئيسية</a>`+MAIN.map(([a,t])=>`<a href="#/${a}" class="${a==k?'on':''}">${t}</a>`).join('')+`<a href="#/branches" class="${k=='branches'?'on':''}">فروع المنظمة</a>`;
- const y=scrollY;const sub=(k==='zad'&&p[1])?'zad-'+p[1]:k;document.getElementById('app').innerHTML=(sub&&BANNERS[sub]?banner(sub):'')+(POSTROUTE[k]?POSTROUTE[k](p):(k=='itqan'&&p[1]!==undefined?itqBranch(+p[1]):(R[k]||R[''])()));scrollTo(0,y)}
+ const y=scrollY;const sub=(k==='zad'&&p[1])?'zad-'+p[1]:k;document.getElementById('app').innerHTML=(sub&&(BANNERS[sub]||BANNERS[sub+'-m'])?banner(sub):'')+(POSTROUTE[k]?POSTROUTE[k](p):(k=='itqan'&&p[1]!==undefined?itqBranch(+p[1]):(R[k]||R[''])()));scrollTo(0,y)}
 addEventListener('hashchange',()=>{scrollTo(0,0);go()});go();loadFat();
 function injectFatCss(){const st=document.createElement('style');st.textContent=`
 .askBig{background:linear-gradient(120deg,#1b6b3a,#2e8b57);color:#fff;text-align:center;font-size:22px;font-weight:800;padding:26px;border-radius:16px;cursor:pointer;margin:14px 0}
@@ -404,7 +404,7 @@ function injectFatCss(){const st=document.createElement('style');st.textContent=
 @keyframes adminGlow{0%,100%{box-shadow:0 6px 18px rgba(201,160,74,.45)}50%{box-shadow:0 6px 28px rgba(251,176,64,.85)}}
 .adBanner{margin:8px 0 14px;border-radius:18px;overflow:hidden;border:2px solid #c9a04a;box-shadow:0 8px 22px rgba(18,61,36,.18)}
 .adBanner img{display:block;width:100%;height:200px;object-fit:cover}
-@media(max-width:600px){.adBanner img{height:170px}}
+@media(max-width:600px){.adBanner img{height:auto}}
 .libHead::after{content:"";position:absolute;inset:8px;border:1px solid rgba(240,196,106,.5);border-radius:12px;pointer-events:none}
 .ribbon{display:block;margin:22px 0 8px;padding:10px 20px;border-radius:10px 40px 10px 40px;background:linear-gradient(120deg,var(--c,#1b6b3a),#2a0b0b);color:#fff;font-weight:800;font-size:18px;box-shadow:0 6px 16px rgba(0,0,0,.18);border-inline-start:6px solid #f0c46a}
 .ribbon.big{font-size:24px;padding:14px 22px;margin:8px 0 12px}
