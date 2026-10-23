@@ -536,8 +536,18 @@ async function publishPost(){
 
 async function delPost(id){
   if(!confirm('حذف هذا المنشور نهائياً؟')) return;
+  // اجمع مسارات الملفات قبل الحذف
+  const {data:post}=await db.from('posts').select('author_photo,cover_path').eq('id',id).maybeSingle();
+  const {data:media}=await db.from('post_media').select('file_path').eq('post_id',id);
+  const paths=[post?.author_photo,post?.cover_path,...(media||[]).map(m=>m.file_path)].filter(Boolean);
+  // احذف السجل أولاً (post_media تُحذف تلقائياً)
   const {error}=await db.from('posts').delete().eq('id',id);
   if(error){pbMsg('تعذّر الحذف: '+error.message);return}
+  // ثم احذف الملفات من التخزين
+  if(paths.length){
+    const {error:se}=await db.storage.from('library-media').remove(paths);
+    if(se) pbMsg('حُذف المنشور لكن تعذّر حذف بعض الملفات: '+se.message);
+  }
   loadPostList();
 }
 
