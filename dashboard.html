@@ -241,7 +241,8 @@ async function doLogout() {
 
 async function start() {
   const { data: { user } } = await db.auth.getUser();
-  const { data: prof, error } = await db.from('profiles').select('full_name, role, teacher_keys').eq('id', user.id).single();
+  const { data: prof, error } = await db.from('profiles').select('full_name, role, teacher_keys, all_panels').eq('id', user.id).single();
+  if (prof && prof.all_panels) prof.role = 'org_manager'; // حساب يدخل كل اللوحات
   if (error || !prof || !ROLE_TILES[prof.role]) {
     $('loginMsg').textContent = 'هذا الحساب غير مرتبط بدور في النظام';
     await db.auth.signOut();

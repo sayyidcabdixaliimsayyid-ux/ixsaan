@@ -126,7 +126,8 @@ async function login(){
 async function enter(){
   const {data:{user}}=await db.auth.getUser();
   if(!user) return;
-  const {data:prof,error}=await db.from('profiles').select('full_name,role').eq('id',user.id).single();
+  const {data:prof,error}=await db.from('profiles').select('full_name,role,all_panels').eq('id',user.id).single();
+  if(prof&&prof.all_panels) prof.role='org_manager';
   if(error||!prof||!ALLOWED.includes(prof.role)){
     $('gateMsg').textContent='لا تملك صلاحية الوصول إلى هذه الصفحة';
     await db.auth.signOut();return;
