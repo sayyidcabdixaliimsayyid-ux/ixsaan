@@ -350,7 +350,7 @@ const halPage=()=>`<h1>حلقات</h1><p>برنامج تدريس عن بعد ب�
 const mgrNote=()=>'';
 function branchesPage(){return `<h1>فروع المنظمة</h1>${tiles(BR)}`}
 function womenPage(){return branchPage('women','منظمة الإحسان قسم النساء')}
-function quranPage(){return branchPage('quran','الجمعية القرآنية في كينيا','',`<a class="tile g" href="#/itqan">${ICO}مدارس الإتقان لتحفيظ القرآن الكريم</a>`)}
+function quranPage(){return branchPage('quran','الجمعية القرآنية في كينيا',`<div class="ctrlTop"><a class="ctrlBtn" href="itqan.html">لوحة تحكم مدارس الإتقان</a></div>`,`<a class="tile g" href="itqan.html">${ICO}مدارس الإتقان لتحفيظ القرآن الكريم</a>`)}
 function itqanPage(){return `<h1>مدارس الإتقان لتحفيظ القرآن الكريم</h1><p>تعريف موجز بالمدارس ونظام التحكم في فروعها الأربعة.</p><div class="grid">${S.itq.map((b,i)=>`<a class="tile" style="background:${b.c};color:#fff" href="#/itqan/${i}">${ICO}${b.n}</a>`).join('')}</div><a class="tile g" href="#/reports">${ICO}التقارير الإدارية (لمدير المنظمة)</a>`}
 function itqBranch(i){const b=S.itq[i],mgr=S.tab=='mgr';let h=`<h1>${b.n}</h1><div class="chips"><button class="chip ${mgr?'on':''}" onclick="S.tab='mgr';go()">المدير والأساتذة</button><button class="chip ${mgr?'':'on'}" onclick="S.tab='cash';go()">أمين الصندوق</button></div><p class="note">كل فرع يرى محتويات فرعه فقط.</p>`;
  if(false)h+=`<div class="card"><b>استمارة القبول</b><div class="row"><input id="a1" placeholder="اسم الطالب"><input id="a2" placeholder="اسم ولي الأمر"><input id="a3" placeholder="الرقم"><input id="a4" placeholder="المكان"><button class="btn" onclick="addSt(${i})">إضافة طالب</button></div></div>`;
