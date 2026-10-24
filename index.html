@@ -248,13 +248,13 @@ function authorPage(name){
   const list=postsOf('articles').filter(a=>a.author_name===name);
   return `<div class="fatWrap"><a class="backBtn" href="#/articles">← كل المقالات</a><div class="ribbon big" style="--c:#1b6b3a">${esc(name)}</div>${list.map(a=>`<div class="titleRow"><a href="#/articles/${a.id}">${esc(a.title)}</a><span>${fmtDate(a.created_at)}</span></div>`).join('')||'<div class="card note">لا توجد مقالات لهذا الكاتب.</div>'}</div>`;
 }
-function articleDetail(a){
+function articleDetail(a,back){
   const paras=(a.body||'').split(/\n\s*\n|\n/).map(s=>s.trim()).filter(Boolean);
   const mid=Math.floor(paras.length/2);
   const quote=t=>`<blockquote class="pull">${esc(t)}</blockquote>`;
   let body=paras.map((t,i)=>(i===mid&&a.pull_quote?quote(a.pull_quote):'')+`<p class="ppara">${esc(t)}</p>`).join('');
   if(!paras.length&&a.pull_quote) body=quote(a.pull_quote);
-  return `<div class="fatWrap"><a class="backBtn" href="#/articles">← كل المقالات</a><article class="pcard big">${a.cover_path?`<img class="pcoverBig" src="${pUrl(a.cover_path)}" alt="">`:''}<h1 class="artTitle">${esc(a.title)}</h1><div class="pmeta">${a.author_photo?`<img class="authorPhoto" src="${pUrl(a.author_photo)}" alt="">`:''}${authorLink(a)}<span>${fmtDate(a.created_at)}</span></div>${body}${mediaHtml(a)}</article></div>`;
+  return `<div class="fatWrap">${back||'<a class="backBtn" href="#/articles">← كل المقالات</a>'}<article class="pcard big">${a.cover_path?`<img class="pcoverBig" src="${pUrl(a.cover_path)}" alt="">`:''}<h1 class="artTitle">${esc(a.title)}</h1><div class="pmeta">${a.author_photo?`<img class="authorPhoto" src="${pUrl(a.author_photo)}" alt="">`:''}${authorLink(a)}<span>${fmtDate(a.created_at)}</span></div>${body}${mediaHtml(a)}</article></div>`;
 }
 function articlesRoute(p){
   if(!POSTS_READY) return postsWait('المقالات');
@@ -276,7 +276,38 @@ function zadRoute(p){
   if(!z) return '<div class="fatWrap"><div class="card note">القسم غير موجود.</div></div>';
   return feedRoute('zad-'+z[0],z[1],`<a class="backBtn" href="#/zad">← كل أقسام زاد الداعية</a>`);
 }
-const POSTROUTE={articles:articlesRoute,about:()=>feedRoute('about','عن المنظمة'),zad:zadRoute};
+const BR_SUBS={
+  quran:[['about','عن الجمعية'],['courses','دورات تدريبية'],['competition','مسابقة القرآن الكريم'],['library','مكتبة حامل القرآن']],
+  women:[['about','عن قسم النساء'],['conf','المؤتمر السنوي'],['lectures','الندوات والمحاضرات'],['media','البرامج الإعلامية']]
+};
+const postCard=p=>`<article class="pcard">${p.cover_path?`<img class="pcover" src="${pUrl(p.cover_path)}" alt="">`:''}<h3 class="ptitle"><a href="#/p/${p.id}">${esc(p.title)}</a></h3><div class="pdate">${fmtDate(p.created_at)}</div>${p.body?`<div class="pbody">${esc(p.body)}</div>`:''}${mediaHtml(p)}</article>`;
+function latestFeed(sec){
+  const all=postsOf(sec);
+  const main=all.slice(0,5).map(postCard).join('')||'<div class="card note">لا توجد منشورات بعد.</div>';
+  const older=all.slice(5);
+  const side=older.length?`<aside class="oldList"><h4>منشورات سابقة</h4>${older.map(p=>`<a href="#/p/${p.id}">${esc(p.title)}</a>`).join('')}</aside>`:'';
+  return main+side;
+}
+function branchPage(key,title,top='',mid=''){
+  if(!POSTS_READY) return postsWait(title);
+  const subs=BR_SUBS[key]||[];
+  const grid=subs.length?`<div class="lgrid">${subs.map(([s,n],i)=>`<a class="lbtn" style="--c:${ZCOLS[i%ZCOLS.length]}" href="#/${key}/${s}">${n}<small>${postsOf('br-'+key+'-'+s).length} منشور</small></a>`).join('')}</div>`:'';
+  return `<div class="fatWrap">${top}${pageHead(title)}${POST_ERR?`<div class="card note">تعذّر تحميل المنشورات: ${esc(POST_ERR)}</div>`:''}${grid}${mid}${latestFeed('br-'+key)}</div>`;
+}
+function branchSubPage(key,sub){
+  const s=(BR_SUBS[key]||[]).find(x=>x[0]===sub);
+  if(!s) return '<div class="fatWrap"><div class="card note">القسم غير موجود.</div></div>';
+  if(!POSTS_READY) return postsWait(s[1]);
+  return `<div class="fatWrap"><a class="backBtn" href="#/${key}">← رجوع</a>${pageHead(s[1])}${latestFeed('br-'+key+'-'+sub)}</div>`;
+}
+function postRoute(p){
+  if(!POSTS_READY) return postsWait('');
+  const a=POSTS.find(x=>String(x.id)===p[1]);
+  return a?articleDetail(a,'<button class="backBtn" onclick="history.back()">← رجوع</button>'):'<div class="fatWrap"><div class="card note">المنشور غير موجود.</div></div>';
+}
+const POSTROUTE={articles:articlesRoute,about:()=>feedRoute('about','عن المنظمة'),zad:zadRoute,p:postRoute,
+  quran:p=>p[1]?branchSubPage('quran',p[1]):quranPage(),
+  women:p=>p[1]?branchSubPage('women',p[1]):womenPage()};
 let FV='', FAT_LIST=[];
 const FOLDERS=['CAQIIDADA','SALAADDA','DAHAARADA','SOONKA','ZAKADA','XAJKA','ARRIMAHA QOYSKA','NIKAAXA','BAYCA IYO MUCAAMALAATKA'];
 const qaCard=f=>`<div class="qa"><div class="qnum">#${f.id}</div><span class="tag">SUAAL</span><div class="qtext">${esc(f.question)}</div><hr class="qline"><span class="tag">JAWAAB</span><div class="atext">${esc(f.answer)}</div></div>`;
@@ -318,8 +349,8 @@ const HAL=['العقيدة','الفقه','الحديث','القرآن وعلوم
 const halPage=()=>`<h1>حلقات</h1><p>برنامج تدريس عن بعد بمنصة تفاعلية يشارك فيها الرواد من أي مكان.</p><div class="grid">${HAL.map(h=>`<div class="tile g" style="flex-direction:column;align-items:flex-start">${ICO}<span>${h}</span></div>`).join('')}</div>`;
 const mgrNote=()=>'';
 function branchesPage(){return `<h1>فروع المنظمة</h1>${tiles(BR)}`}
-function womenPage(){return sec('منظمة الإحسان قسم النساء',[])}
-function quranPage(){return sec('الجمعية القرآنية في كينيا',[])+`<a class="tile g" href="#/itqan">${ICO}مدارس الإتقان لتحفيظ القرآن الكريم</a>`}
+function womenPage(){return branchPage('women','منظمة الإحسان قسم النساء')}
+function quranPage(){return branchPage('quran','الجمعية القرآنية في كينيا','',`<a class="tile g" href="#/itqan">${ICO}مدارس الإتقان لتحفيظ القرآن الكريم</a>`)}
 function itqanPage(){return `<h1>مدارس الإتقان لتحفيظ القرآن الكريم</h1><p>تعريف موجز بالمدارس ونظام التحكم في فروعها الأربعة.</p><div class="grid">${S.itq.map((b,i)=>`<a class="tile" style="background:${b.c};color:#fff" href="#/itqan/${i}">${ICO}${b.n}</a>`).join('')}</div><a class="tile g" href="#/reports">${ICO}التقارير الإدارية (لمدير المنظمة)</a>`}
 function itqBranch(i){const b=S.itq[i],mgr=S.tab=='mgr';let h=`<h1>${b.n}</h1><div class="chips"><button class="chip ${mgr?'on':''}" onclick="S.tab='mgr';go()">المدير والأساتذة</button><button class="chip ${mgr?'':'on'}" onclick="S.tab='cash';go()">أمين الصندوق</button></div><p class="note">كل فرع يرى محتويات فرعه فقط.</p>`;
  if(false)h+=`<div class="card"><b>استمارة القبول</b><div class="row"><input id="a1" placeholder="اسم الطالب"><input id="a2" placeholder="اسم ولي الأمر"><input id="a3" placeholder="الرقم"><input id="a4" placeholder="المكان"><button class="btn" onclick="addSt(${i})">إضافة طالب</button></div></div>`;
@@ -330,7 +361,7 @@ function reportsPage(){if(true)return sec('التقارير الإدارية',[]
  const fee=20;let h='<h1>التقارير الإدارية للمنظمة</h1><div class="tw"><table><tr><th>الفرع</th><th>الطلاب</th><th>المطلوب شهرياً</th><th>المسدد</th></tr>',T=[0,0,0];
  S.itq.forEach(b=>{const n=b.st.length,p=b.st.filter(s=>s.paid).length;T[0]+=n;T[1]+=n*fee;T[2]+=p*fee;h+=`<tr><td>${b.n}</td><td>${n}</td><td>${money(n*fee)}</td><td>${money(p*fee)}</td></tr>`});
  return h+`<tr><th>الإجمالي</th><th>${T[0]}</th><th>${money(T[1])}</th><th>${money(T[2])}</th></tr></table></div><p class="note">الرسوم الشهرية التجريبية ${money(fee)} للطالب. تقرير الزيادة والنقص حسب التسجيل والمغادرة يُولَّد من سجل الحالة عند ربط قاعدة البيانات.</p>`}
-function instPage(){return `<div class="row"><a class="btn" href="dashboard.html" style="text-decoration:none">دخول لوحة تحكم المعهد</a></div>`;
+function instPage(){return branchPage('institute','معهد الإحسان لإعداد العلماء',`<div class="ctrlTop"><a class="ctrlBtn" href="dashboard.html">لوحة التحكم</a></div>`);
  const I=S.inst,tab=S.tab;
  const sx=s=>s.adm?'نشط':'بانتظار سداد رسوم القبول';
  let h=`<h1>معهد الإحسان لإعداد العلماء</h1><div class="row"><a class="btn" href="dashboard.html" style="text-decoration:none">دخول لوحة تحكم المعهد</a></div><div class="chips">${[['mgr','المدير'],['sec','السكرتير'],['cash','أمين الصندوق']].map(([k,t])=>`<button class="chip ${tab==k?'on':''}" onclick="S.tab='${k}';go()">${t}</button>`).join('')}</div>`;
@@ -351,7 +382,7 @@ const R={'':()=>((BANNERS['home-hero']||BANNERS['home-hero-m'])?banner('home-her
  library:libraryPageV2,fatwa:fatPage,halaqat:halPage,
  articles:()=>sec('مقالات',[]),about:()=>sec('عن المنظمة',[],'سيُنشر هنا تعريف بالمنظمة قريباً.'),zad:()=>sec('زاد الداعية',[],'سيُنشر هنا زاد الداعية قريباً.'),programs:()=>sec('برامج دعوية',[],'سيُنشر هنا برنامج الدعوة قريباً.'),
  branches:branchesPage,institute:instPage,quran:quranPage,women:womenPage,itqan:itqanPage,reports:reportsPage,
- seasonal:()=>sec('الدورات الموسمية',[]),dawah:()=>sec('شؤون الدعوة',[]),schools:()=>sec('المدارس الدمجية',[])};
+ seasonal:()=>branchPage('seasonal','الدورات الموسمية'),dawah:()=>branchPage('dawah','شؤون الدعوة'),schools:()=>branchPage('schools','المدارس الدمجية')};
 function go(){const p=(location.hash||'#/').slice(2).split('/'),k=p[0];
  document.getElementById('nav').innerHTML=`<a href="#/" class="${k?'':'on'}">الرئيسية</a>`+MAIN.map(([a,t])=>`<a href="#/${a}" class="${a==k?'on':''}">${t}</a>`).join('')+`<a href="#/branches" class="${k=='branches'?'on':''}">فروع المنظمة</a>`;
  const y=scrollY;const sub=(k==='zad'&&p[1])?'zad-'+p[1]:k;document.getElementById('app').innerHTML=(sub&&(BANNERS[sub]||BANNERS[sub+'-m'])?banner(sub):'')+(POSTROUTE[k]?POSTROUTE[k](p):(k=='itqan'&&p[1]!==undefined?itqBranch(+p[1]):(R[k]||R[''])()));scrollTo(0,y)}
@@ -418,6 +449,10 @@ function injectFatCss(){const st=document.createElement('style');st.textContent=
 .bookTxt b{color:#2b1d0e;word-break:break-word}
 .bookBtn{align-self:flex-start;background:var(--c,#1b6b3a);color:#fff;text-decoration:none;border-radius:999px;padding:7px 16px;font-weight:700;font-size:14px}
 a.lbtn{text-decoration:none;display:block}
+.ctrlTop{display:flex;justify-content:flex-start;margin:0 0 12px}
+.ctrlBtn{position:relative;overflow:hidden;display:inline-block;padding:13px 30px;border-radius:14px;background:linear-gradient(120deg,#1b6b3a,#2e8b57,#1b6b3a);background-size:200% 100%;color:#fbb040;font-weight:900;font-size:18px;text-decoration:none;border:2px solid #c9a04a;box-shadow:0 6px 18px rgba(27,107,58,.35);animation:adminGlow 2.4s ease-in-out infinite;transition:transform .2s}
+.ctrlBtn::after{content:"";position:absolute;top:0;bottom:0;left:-75%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);transform:skewX(-20deg);animation:adminShine 2.6s infinite;pointer-events:none}
+.ctrlBtn:hover{transform:translateY(-2px)}
 .artGrid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
 @media(max-width:800px){.artGrid{grid-template-columns:minmax(0,1fr)}}
 .pcard{background:#fff;border:1px solid #e8d3a2;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 4px 14px rgba(0,0,0,.06)}

@@ -64,7 +64,7 @@ textarea{font:inherit}
           <div class="sec" style="cursor:pointer" onclick="openPosts('about')">عن المنظمة<br><small>نشر وإدارة</small></div>
           <div class="sec" style="cursor:pointer" onclick="openPosts('zad-teacher')">زاد الداعية<br><small>الأقسام الثمانية</small></div>
           <div class="sec soon">برامج دعوية<br><small>قريباً</small></div>
-                    <div class="sec soon">فروع المنظمة<br><small>قريباً</small></div>
+                    <div class="sec" style="cursor:pointer" onclick="openPosts('br-institute')">فروع المنظمة<br><small>نشر في الفروع وأقسامها</small></div>
         </div>
       </div>
 
@@ -466,7 +466,7 @@ async function delAd(){
   loadAds();
 }
 
-const POST_SECS=[['articles','المقالات'],['about','عن المنظمة'],['zad-teacher','زاد المعلم'],['zad-khatib','زاد الخطيب'],['zad-student','زاد طالب العلم'],['zad-ideas','افكار دعوية'],['zad-family','ركن الأسرة'],['zad-women','للنساء فقط'],['zad-shubuhat','شبهات'],['zad-alamuna','أعلامنا']];
+const POST_SECS=[['articles','المقالات'],['about','عن المنظمة'],['zad-teacher','زاد المعلم'],['zad-khatib','زاد الخطيب'],['zad-student','زاد طالب العلم'],['zad-ideas','افكار دعوية'],['zad-family','ركن الأسرة'],['zad-women','للنساء فقط'],['zad-shubuhat','شبهات'],['zad-alamuna','أعلامنا'],['br-institute','فروع: معهد الإحسان لإعداد العلماء'],['br-quran','فروع: الجمعية القرآنية في كينيا'],['br-quran-about','فروع: الجمعية القرآنية — عن الجمعية'],['br-quran-courses','فروع: الجمعية القرآنية — دورات تدريبية'],['br-quran-competition','فروع: الجمعية القرآنية — مسابقة القرآن الكريم'],['br-quran-library','فروع: الجمعية القرآنية — مكتبة حامل القرآن'],['br-women','فروع: منظمة الإحسان قسم النساء'],['br-women-about','فروع: قسم النساء — عن قسم النساء'],['br-women-conf','فروع: قسم النساء — المؤتمر السنوي'],['br-women-lectures','فروع: قسم النساء — الندوات والمحاضرات'],['br-women-media','فروع: قسم النساء — البرامج الإعلامية'],['br-seasonal','فروع: الدورات الموسمية'],['br-dawah','فروع: شؤون الدعوة'],['br-schools','فروع: المدارس الدمجية']];
 
 function pbMsg(t,ok){$('pbMsg').className=ok?'ok':'msg';$('pbMsg').textContent=t}
 
