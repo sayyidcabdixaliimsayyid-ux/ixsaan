@@ -184,18 +184,18 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 
 const ROLE_LABEL={itqan_association_manager:'مدير الجمعية',itqan_branch_manager:'مدير الفرع',itqan_cashier:'أمين الصندوق'};
 const KIND={rw:'حلقة القراءة والكتابة',quran:'حلقة قرآن'};
-const GN={boy:'بنين',girl:'بنات'};
+const GN=new Proxy({boy:'بنين',girl:'بنات'},{get:(t,k)=>t[k]||'—'});
 const TABS={
-  association:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إدارة فرع','c-blue','🛠️','بيانات الفروع وإضافة فرع'],['halaqat','الحلقات والطلاب','c-teal','📚','الحلقات حسب الفرز'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية ومتابعتها','c-red','💰','السداد والمتأخرات'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
-  branch:[['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['halaqat','الحلقات','c-teal','📚','الحلقات والطلاب'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية','c-red','💰','السداد والمتأخرات'],['people','المعلمون','c-gold','👥','إضافة المعلمين']],
+  association:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إدارة فرع','c-blue','🛠️','بيانات الفروع وإضافة فرع'],['halaqat','الحلقات والطلاب','c-teal','📚','الحلقات حسب الفرز'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية ومتابعتها','c-red','💰','السداد والمتأخرات'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
+  branch:[['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['halaqat','الحلقات','c-teal','📚','الحلقات والطلاب'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية','c-red','💰','السداد والمتأخرات'],['people','المعلمون','c-gold','👥','إضافة المعلمين']],
   cashier:[['finance','المالية','c-red','💰','السداد والمتأخرات']]
 };
-const BRANCH_TABS=['halaqat','register','progress','finance','people'];
+const BRANCH_TABS=['halaqat','register','complete','progress','finance','people'];
 const DEFAULT_TAB={association:'branches',branch:'halaqat',cashier:'finance'};
 
-let ME=null, BR=[], TE=[], HA=[], ST=[], PY=[], PEOPLE=[];
+let ME=null, BR=[], TE=[], HA=[], ST=[], PY=[], PEOPLE=[], MG=[];
 const monthNow=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
-const V={tab:'',branch:'',fh:'all',ft:'all',fg:'all',group:'halaqa',month:monthNow()};
+const V={tab:'',branch:'',fh:'all',ft:'all',fg:'all',group:'halaqa',month:monthNow(),sub:''};
 
 const rk=()=>ME.role==='itqan_association_manager'?'association':ME.role==='itqan_branch_manager'?'branch':'cashier';
 const scope=()=>rk()==='association'?V.branch:ME.branch_id;
@@ -251,14 +251,16 @@ async function loadAll(){
     db.from('itqan_teachers').select('*').order('full_name').range(0,9999),
     db.from('itqan_halaqat').select('*').order('name').range(0,9999),
     db.from('itqan_students').select('*').order('full_name').range(0,9999),
-    db.from('itqan_payments').select('*').range(0,9999)
+    db.from('itqan_payments').select('*').range(0,9999),
+    db.from('itqan_managers').select('*').order('full_name').range(0,9999)
   ];
   if(rk()==='association') q.push(db.from('profiles').select('id,full_name,role,branch_id').in('role',Object.keys(ROLE_LABEL)));
   const r=await Promise.all(q);
   const bad=r.find(x=>x.error);
   if(bad) msg('تعذّر التحميل: '+bad.error.message);
   BR=r[0].data||[]; TE=r[1].data||[]; HA=r[2].data||[]; ST=r[3].data||[]; PY=r[4].data||[];
-  PEOPLE=r[5]?.data||[];
+  MG=r[5].data||[];
+  PEOPLE=r[6]?.data||[];
 }
 
 async function dbDo(p,ok){
@@ -341,10 +343,11 @@ function branchInfo(){
     <div style="flex:1;min-width:220px"><h3 style="margin:0 0 6px">${esc(b.name)}</h3>
     <div class="note">📍 العنوان: ${esc(b.address||'لم يُحدد بعد')}</div>
     ${b.location_url?`<div class="note"><a href="${esc(b.location_url)}" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></div>`:''}
-    <div class="note">الرسم الشهري: ${b.monthly_fee} — رسوم القبول: ${b.admission_fee}</div></div></div>`;
+    <div class="note">الرسم الشهري: ${b.monthly_fee} — رسوم القبول: ${b.admission_fee}</div>
+    ${MG.filter(m=>m.branch_id===b.id).map(m=>`<div class="note" style="display:flex;gap:8px;align-items:center;margin-top:4px">${m.photo_path?`<img src="${bUrl(m.photo_path)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">`:'👤'}<span>المدير: ${esc(m.full_name)} — ${esc(m.phone||'')} — ${esc(m.address||'')}</span></div>`).join('')}</div></div>`;
 }
 
-RV.addbranch=()=>`${BR.map(b=>`<div class="card binfo" style="flex-direction:column;align-items:stretch">
+RV.addbranch=()=>`${manageTools()}${BR.map(b=>`<div class="card binfo" style="flex-direction:column;align-items:stretch">
     <div class="binfo">${bPhoto(b)}<div style="flex:1;min-width:220px"><h3 style="margin:0 0 6px">${esc(b.name)}</h3><div class="note">${esc(b.address||'بدون عنوان')}</div></div></div>
     <div class="row" style="margin-top:10px">
       <input id="bn_${b.id}" value="${esc(b.name)}" placeholder="اسم الفرع">
@@ -383,6 +386,107 @@ async function saveBranch(id){
     const f=$('bp_'+id).files[0];
     if(f) row.photo_path=await uploadBranchPhoto(id,f);
     dbDo(db.from('itqan_branches').update(row).eq('id',id),'تم حفظ بيانات الفرع ✓');
+  }catch(e){ msg('تعذّر الحفظ: '+e.message); }
+}
+
+function manageTools(){
+  const branchOpts=BR.map(x=>`<option value="${x.id}" ${x.id===scope()?'selected':''}>${esc(x.name)}</option>`).join('');
+  const btns=`<div class="row" style="margin:6px 0 12px">
+    <button class="b" onclick="setV('sub','excel')">📥 توريد ملف EXCEL</button>
+    <button class="b g" onclick="setV('sub','manager')">👤 إضافة مدير</button>
+    ${V.sub?`<button class="b m" onclick="setV('sub','')">إخفاء</button>`:''}</div>`;
+  let form='';
+  if(V.sub==='excel') form=`<div class="card"><h3>توريد طلاب من ملف Excel</h3>
+    <div class="row"><label>الفرع: <select id="xlBranch">${branchOpts}</select></label>
+    <input type="file" id="xlFile" accept=".xlsx,.xls,.csv"></div>
+    <p class="note">يكفي عمود «الاسم» في أول صف. أي أعمدة أخرى تُقرأ إن وُجدت: الجنس (بنين/بنات)، ولي الأمر، الهاتف، العنوان، تاريخ الميلاد (yyyy-mm-dd)، الحلقة (اسمها كما هو في الفرع). ما ينقص يُستكمل لاحقاً من تبويب «استكمال بيانات الطلاب».</p>
+    <div class="row" style="margin-top:8px"><button class="b g" onclick="importExcel()">استيراد الطلاب</button><button class="b m" onclick="downloadTemplate()">تحميل نموذج فارغ</button></div></div>`;
+  if(V.sub==='manager') form=`<div class="card"><h3>تسجيل بيانات مدير فرع</h3>
+    <div class="row"><label>الفرع: <select id="mBranch">${branchOpts}</select></label>
+    <input id="mName" placeholder="اسم المدير الكامل"><input id="mPhone" placeholder="الهاتف"><input id="mAddr" placeholder="العنوان"></div>
+    <div class="row" style="margin-top:8px"><label>حساب الدخول: <select id="mUser">${accOpts('')}</select></label>
+    <label class="note">صورة المدير: <input type="file" id="mPhoto" accept="image/*"></label></div>
+    <div style="margin-top:10px"><button class="b g" onclick="saveManager()">حفظ بيانات المدير</button></div>
+    <p class="note">حساب الدخول يُنشأ أولاً من Supabase (Authentication ← Users) بدور «مدير الفرع»، ثم يُربط هنا. يمكن تركه فارغاً وربطه لاحقاً من «ملف المدير».</p></div>`;
+  const list=MG.length?`<div class="card"><h3>المدراء المسجلون</h3><div class="tw"><table><tr><th>الصورة</th><th>الاسم</th><th>الفرع</th><th>الهاتف</th><th>العنوان</th></tr>
+    ${MG.map(m=>`<tr><td>${m.photo_path?`<img src="${bUrl(m.photo_path)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:'—'}</td><td>${esc(m.full_name)}</td><td>${esc(brOf(m.branch_id)?.name||'')}</td><td>${esc(m.phone||'')}</td><td>${esc(m.address||'')}</td></tr>`).join('')}
+    </table></div></div>`:'';
+  return btns+form+list;
+}
+
+let XL_LOADED=false;
+function loadXlsx(){
+  return new Promise((res,rej)=>{
+    if(window.XLSX) return res();
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=()=>res();
+    s.onerror=()=>rej(new Error('تعذّر تحميل مكتبة Excel'));
+    document.head.appendChild(s);
+  });
+}
+
+async function importExcel(){
+  const bid=$('xlBranch').value, f=$('xlFile').files[0];
+  if(!bid) return msg('اختر الفرع');
+  if(!f) return msg('اختر ملف Excel أولاً');
+  try{
+    await loadXlsx();
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    const pick=(r,keys)=>{for(const k of keys){const v=r[k];if(v!==undefined&&String(v).trim()!=='') return String(v).trim()}return ''};
+    const hs=HA.filter(h=>h.branch_id===bid);
+    const out=[]; let noName=0, noHalaqa=0;
+    for(const r of rows){
+      const name=pick(r,['الاسم','الاسم الرباعي','اسم الطالب']);
+      if(!name){noName++;continue}
+      const g=pick(r,['الجنس']);
+      const hn=pick(r,['الحلقة','اسم الحلقة']);
+      const hid=hn?(hs.find(h=>h.name===hn)?.id||null):null;
+      if(hn&&!hid) noHalaqa++;
+      const bd=pick(r,['تاريخ الميلاد']);
+      out.push({
+        branch_id:bid, full_name:name,
+        gender:/بنات|انثى|أنثى/.test(g)?'girl':(/بنين|ولد|ذكر/.test(g)?'boy':null),
+        guardian_name:pick(r,['ولي الأمر','اسم ولي الأمر'])||null,
+        phone:pick(r,['الهاتف'])||null,
+        address:pick(r,['العنوان'])||null,
+        birth_date:/^\d{4}-\d{2}-\d{2}$/.test(bd)?bd:null,
+        halaqa_id:hid
+      });
+    }
+    if(!out.length) return msg('لم أجد طلاباً في الملف. تأكد من أن عمود الاسم عنوانه «الاسم».');
+    for(let i=0;i<out.length;i+=200){
+      const {error}=await db.from('itqan_students').insert(out.slice(i,i+200));
+      if(error) return msg('تعذّر الاستيراد عند الصف '+(i+1)+': '+error.message);
+    }
+    await loadAll();
+    msg(`تم استيراد ${out.length} طالباً ✓`+(noName?` — تخطّي ${noName} صفاً بلا اسم`:'')+(noHalaqa?` — لم تُطابق ${noHalaqa} حلقة`:''),true);
+    paint();
+  }catch(e){ msg('تعذّر قراءة الملف: '+e.message); }
+}
+
+function downloadTemplate(){
+  loadXlsx().then(()=>{
+    const ws=XLSX.utils.aoa_to_sheet([
+      ['الاسم','الجنس','ولي الأمر','الهاتف','العنوان','تاريخ الميلاد','الحلقة'],
+      ['مثال: أحمد علي','بنين','محمد علي','0700000000','نيروبي','2015-05-01','القراءة والكتابة (1)']
+    ]);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'الطلاب');
+    XLSX.writeFile(wb,'نموذج-طلاب-الإتقان.xlsx');
+  }).catch(e=>msg(e.message));
+}
+
+async function saveManager(){
+  try{
+    const bid=$('mBranch').value, name=$('mName').value.trim();
+    if(!bid) return msg('اختر الفرع');
+    if(!name) return msg('اكتب اسم المدير');
+    const f=$('mPhoto').files[0];
+    const row={branch_id:bid,full_name:name,phone:$('mPhone').value.trim()||null,address:$('mAddr').value.trim()||null,user_id:$('mUser').value||null};
+    if(f) row.photo_path=await uploadBranchPhoto('mgr-'+bid,f);
+    dbDo(db.from('itqan_managers').insert(row),'تم تسجيل المدير ✓');
   }catch(e){ msg('تعذّر الحفظ: '+e.message); }
 }
 
@@ -464,6 +568,73 @@ function registerStudent(){
   dbDo(db.from('itqan_students').insert(row),'تم تسجيل الطالب ✓');
 }
 
+/* ===== استكمال بيانات الطلاب ===== */
+RV.complete=()=>{
+  const b=scope(); if(!b) return noB();
+  const hs=HA.filter(h=>h.branch_id===b);
+  const missing=ST.filter(s=>s.branch_id===b&&(!s.gender||!s.halaqa_id));
+  const list=V.showAll?ST.filter(s=>s.branch_id===b):missing;
+  return `<div class="card"><div class="row"><b>طلاب ناقصو البيانات (الجنس أو الحلقة): ${missing.length}</b>
+    <button class="b ${V.showAll?'m':'g'}" onclick="setV('showAll',!V.showAll)">${V.showAll?'عرض الناقصين فقط':'عرض جميع الطلاب'}</button></div>
+    <p class="note">حدّد الجنس والحلقة وأكمل بقية البيانات، ثم اضغط «حفظ» في سطر الطالب.</p></div>`
+  + (list.length?`<div class="tw"><table><tr><th>الطالب</th><th>الجنس *</th><th>الحلقة</th><th>ولي الأمر</th><th>الهاتف</th><th>العنوان</th><th></th></tr>
+  ${list.map(s=>`<tr>
+    <td>${esc(s.full_name)}</td>
+    <td><select id="cg_${s.id}"><option value="">—</option><option value="boy" ${s.gender==='boy'?'selected':''}>بنين</option><option value="girl" ${s.gender==='girl'?'selected':''}>بنات</option></select></td>
+    <td><select id="ch_${s.id}"><option value="">— بدون حلقة —</option>${hs.map(x=>`<option value="${x.id}" ${x.id===s.halaqa_id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></td>
+    <td><input id="cu_${s.id}" value="${esc(s.guardian_name||'')}"></td>
+    <td><input id="cp_${s.id}" value="${esc(s.phone||'')}"></td>
+    <td><input id="ca_${s.id}" value="${esc(s.address||'')}"></td>
+    <td><button class="b g" onclick="saveComplete('${s.id}')">حفظ</button></td></tr>`).join('')}</table></div>`
+  :'<div class="card note">كل طلاب الفرع مكتملو البيانات ✓</div>');
+};
+
+function saveComplete(id){
+  const g=$('cg_'+id).value;
+  if(!g) return msg('اختر الجنس أولاً');
+  dbDo(db.from('itqan_students').update({
+    gender:g,
+    halaqa_id:$('ch_'+id).value||null,
+    guardian_name:$('cu_'+id).value.trim()||null,
+    phone:$('cp_'+id).value.trim()||null,
+    address:$('ca_'+id).value.trim()||null
+  }).eq('id',id),'تم حفظ بيانات الطالب ✓');
+}
+
+/* ===== ملفات المدراء ===== */
+const accOpts=sel=>`<option value="">— بدون حساب —</option>`+PEOPLE.filter(p=>p.role==='itqan_branch_manager').map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.full_name)} — ${esc(brOf(p.branch_id)?.name||'')}</option>`).join('');
+
+function managersList(){
+  const rows=MG.map(m=>`<tr><td>${m.photo_path?`<img src="${bUrl(m.photo_path)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:'👤'}</td><td>${esc(m.full_name)}</td><td>${esc(brOf(m.branch_id)?.name||'')}</td><td>${esc(m.phone||'')}</td><td><button class="b g" onclick="setV('mgr','${m.id}')">فتح الملف</button></td></tr>`).join('');
+  return `<div class="card"><h3>ملفات مدراء الفروع</h3>${rows?`<div class="tw"><table><tr><th>الصورة</th><th>الاسم</th><th>الفرع</th><th>الهاتف</th><th></th></tr>${rows}</table></div>`:'<p class="note">لا يوجد مدراء مسجّلون بعد، أضفهم من «إدارة فرع».</p>'}</div>`;
+}
+
+function managerProfile(m){
+  const acc=PEOPLE.find(p=>p.id===m.user_id);
+  return `<div class="card binfo">${m.photo_path?`<img class="bphoto" src="${bUrl(m.photo_path)}" alt="">`:'<div class="bphoto ph">👤</div>'}
+    <div style="flex:1;min-width:220px"><h3 style="margin:0 0 6px">${esc(m.full_name)}</h3>
+    <div class="note">🏫 الفرع: ${esc(brOf(m.branch_id)?.name||'—')}</div>
+    <div class="note">📞 الهاتف: ${esc(m.phone||'—')}</div>
+    <div class="note">📍 العنوان: ${esc(m.address||'—')}</div>
+    <div class="note">🔑 حساب الدخول: ${acc?esc(acc.full_name):'غير مرتبط'}</div></div></div>
+    <div class="card"><h3>تعديل الملف الشخصي</h3>
+    <div class="row"><input id="ePName" value="${esc(m.full_name)}" placeholder="الاسم"><input id="ePPhone" value="${esc(m.phone||'')}" placeholder="الهاتف"><input id="ePAddr" value="${esc(m.address||'')}" placeholder="العنوان"></div>
+    <div class="row" style="margin-top:8px"><label>حساب الدخول: <select id="ePUser">${accOpts(m.user_id)}</select></label>
+    <label>تغيير الصورة: <input type="file" id="ePPhoto" accept="image/*"></label></div>
+    <div class="row" style="margin-top:10px"><button class="b g" onclick="saveManagerProfile('${m.id}')">حفظ الملف</button><button class="b m" onclick="setV('mgr','')">رجوع للقائمة</button></div></div>`;
+}
+
+async function saveManagerProfile(id){
+  try{
+    const name=$('ePName').value.trim();
+    if(!name) return msg('اكتب اسم المدير');
+    const row={full_name:name,phone:$('ePPhone').value.trim()||null,address:$('ePAddr').value.trim()||null,user_id:$('ePUser').value||null};
+    const f=$('ePPhoto').files[0];
+    if(f) row.photo_path=await uploadBranchPhoto('mgr-'+id,f);
+    dbDo(db.from('itqan_managers').update(row).eq('id',id),'تم حفظ الملف ✓');
+  }catch(e){ msg('تعذّر الحفظ: '+e.message); }
+}
+
 RV.progress=()=>{
   const b=scope(); if(!b) return noB();
   const list=filtered(b);
@@ -513,12 +684,15 @@ function togglePay(sid){
 
 RV.people=()=>{
   const b=scope();
+  const mgm=V.mgr&&MG.find(m=>m.id===V.mgr);
+  if(mgm) return `<p><button class="b m" onclick="setV('mgr','')">← كل المدراء</button></p>`+managerProfile(mgm);
+  const mgList=rk()==='association'?managersList():'';
   const staff=rk()==='association'?`<div class="card"><h3>المدراء وأمين الصندوق</h3>
     <div class="tw"><table><tr><th>الاسم</th><th>الصفة</th><th>الفرع</th></tr>
     ${PEOPLE.map(p=>`<tr><td>${esc(p.full_name)}</td><td>${ROLE_LABEL[p.role]||''}</td><td>${esc(brOf(p.branch_id)?.name||'—')}</td></tr>`).join('')||'<tr><td colspan="3" class="note">لا توجد حسابات بعد</td></tr>'}
     </table></div></div>`:'';
-  if(!b) return staff+noB();
-  return staff+`<div class="card"><h3>معلمو ${esc(brOf(b)?.name||'')}</h3>
+  if(!b) return mgList+staff+noB();
+  return mgList+staff+`<div class="card"><h3>معلمو ${esc(brOf(b)?.name||'')}</h3>
     <div class="row"><input id="tName" placeholder="اسم المعلم"><input id="tPhone" placeholder="الهاتف"><button class="b g" onclick="addTeacher()">إضافة معلم</button></div>
     <div class="tw" style="margin-top:10px"><table><tr><th>المعلم</th><th>الهاتف</th><th>الحلقات</th><th>عدد الطلاب</th></tr>
     ${TE.filter(t=>t.branch_id===b).map(t=>{const hh=HA.filter(x=>x.teacher_id===t.id);const n=ST.filter(s=>hh.some(x=>x.id===s.halaqa_id)).length;
