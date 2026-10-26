@@ -110,6 +110,9 @@ tr:nth-child(even) td{background:#fdfaf2}
 .loginCard input{width:100%;padding:12px;margin:6px 0}
 .loginCard button{width:100%;font:inherit;font-weight:800;background:linear-gradient(135deg,#e5572a,#f7941d);color:#fff;border:0;border-radius:12px;padding:12px;cursor:pointer;margin-top:8px}
 
+.binfo{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.bphoto{width:150px;height:105px;object-fit:cover;border-radius:14px;border:2px solid #c9a04a;flex:none}
+.bphoto.ph{display:flex;align-items:center;justify-content:center;font-size:40px;background:#fbf6e9}
 /* شعار المنظمة: زر الرجوع، يتحرك ويلمع */
 .ihsanLink{position:relative;display:inline-block;overflow:hidden;border-radius:8px;perspective:300px;vertical-align:middle}
 .ihsanImg{display:block;animation:ihsanLogoFx 5s infinite ease-in-out;backface-visibility:hidden}
@@ -145,15 +148,15 @@ tr:nth-child(even) td{background:#fdfaf2}
 
 <div id="app" class="hidden">
   <div class="header">
-    <div class="logoBox"><img src="logo.png" alt="شعار معهد الإحسان"></div>
+    <div class="logoBox"><img src="quran-logo.png" onerror="this.onerror=null;this.src='ihsan-logo.png'" alt="شعار الجمعية القرآنية" style="height:70px;display:block"></div>
     <div class="title">
-      <h1>مدارس الإتقان لتحفيظ القرآن الكريم</h1>
+      <h1>الجمعية القرآنية في كينيا</h1>
       <div class="sub">منظمة الإحسان للرعاية الاجتماعية</div>
     </div>
     <a href="index.html" class="logoBox ihsanLink" title="العودة إلى موقع المنظمة" style="padding:6px 10px"><img class="ihsanImg" src="ihsan-logo.png" alt="منظمة الإحسان" style="height:56px;display:block;background:#fff;border-radius:8px;padding:4px"></a>
   </div>
 
-  <div class="ticker"><div class="ticker-track">مدارس الإتقان لتحفيظ القرآن الكريم <span class="sep">✦</span> الفرع الأول <span class="sep">✦</span> الفرع الثاني <span class="sep">✦</span> الفرع الثالث <span class="sep">✦</span> الفرع الرابع <span class="sep">✦</span></div></div>
+  <div class="ticker"><div class="ticker-track">قال تعالى: ﴿إن هذا القرآن يهدي للتي هي أقوم﴾ <span class="sep">✦</span> تعليم قرآني فريد <span class="sep">✦</span> مدارس رائدة <span class="sep">✦</span> مسابقات <span class="sep">✦</span> وكوادر ملهمة <span class="sep">✦</span></div></div>
 
   <div class="bar">
     <div>
@@ -183,7 +186,7 @@ const ROLE_LABEL={itqan_association_manager:'مدير الجمعية',itqan_bran
 const KIND={rw:'حلقة القراءة والكتابة',quran:'حلقة قرآن'};
 const GN={boy:'بنين',girl:'بنات'};
 const TABS={
-  association:[['branches','مدارس الإتقان الأربعة','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إضافة فرع','c-blue','➕','فرع جديد بالرسوم'],['halaqat','الحلقات والطلاب','c-teal','📚','الحلقات حسب الفرز'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية ومتابعتها','c-red','💰','السداد والمتأخرات'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
+  association:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إدارة فرع','c-blue','🛠️','بيانات الفروع وإضافة فرع'],['halaqat','الحلقات والطلاب','c-teal','📚','الحلقات حسب الفرز'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية ومتابعتها','c-red','💰','السداد والمتأخرات'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
   branch:[['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['halaqat','الحلقات','c-teal','📚','الحلقات والطلاب'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية','c-red','💰','السداد والمتأخرات'],['people','المعلمون','c-gold','👥','إضافة المعلمين']],
   cashier:[['finance','المالية','c-red','💰','السداد والمتأخرات']]
 };
@@ -276,7 +279,8 @@ function paint(){
   const needs=BRANCH_TABS.includes(V.tab);
   $('pick').innerHTML=needs?pickerHtml():'';
   $('pick').classList.toggle('hidden',!needs);
-  $('content').innerHTML=RV[V.tab]?RV[V.tab]():'';
+  const info=needs&&scope()?branchInfo():'';
+  $('content').innerHTML=info+(RV[V.tab]?RV[V.tab]():'');
 }
 
 function statsHtml(){
@@ -328,15 +332,66 @@ RV.branches=()=>BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{cons
   <span class="ds">الطلاب: ${ss.length} (بنين ${ss.filter(s=>s.gender==='boy').length} / بنات ${ss.filter(s=>s.gender==='girl').length})</span>
   <span class="ds">الرسم الشهري: ${b.monthly_fee}</span></button>`;}).join('')}</div>`:'<div class="card note">لا توجد فروع بعد.</div>';
 
-RV.addbranch=()=>`<div class="card"><h3>إضافة فرع جديد</h3>
-  <div class="row"><input id="nbName" placeholder="اسم الفرع، مثال: مدرسة الإتقان — الفرع الخامس"><input id="nbFee" type="number" placeholder="الرسم الشهري" value="20"><input id="nbAdm" type="number" placeholder="رسوم القبول" value="0"></div>
-  <div style="margin-top:10px"><button class="b g" onclick="addBranch()">حفظ الفرع</button></div></div>`;
+const bUrl=p=>p?db.storage.from('itqan-media').getPublicUrl(p).data.publicUrl:'';
+const bPhoto=b=>b.photo_path?`<img class="bphoto" src="${bUrl(b.photo_path)}" alt="">`:'<div class="bphoto ph">🏫</div>';
+
+function branchInfo(){
+  const b=brOf(scope()); if(!b) return '';
+  return `<div class="card binfo">${bPhoto(b)}
+    <div style="flex:1;min-width:220px"><h3 style="margin:0 0 6px">${esc(b.name)}</h3>
+    <div class="note">📍 العنوان: ${esc(b.address||'لم يُحدد بعد')}</div>
+    ${b.location_url?`<div class="note"><a href="${esc(b.location_url)}" target="_blank" rel="noopener">فتح الموقع على الخريطة</a></div>`:''}
+    <div class="note">الرسم الشهري: ${b.monthly_fee} — رسوم القبول: ${b.admission_fee}</div></div></div>`;
+}
+
+RV.addbranch=()=>`${BR.map(b=>`<div class="card binfo" style="flex-direction:column;align-items:stretch">
+    <div class="binfo">${bPhoto(b)}<div style="flex:1;min-width:220px"><h3 style="margin:0 0 6px">${esc(b.name)}</h3><div class="note">${esc(b.address||'بدون عنوان')}</div></div></div>
+    <div class="row" style="margin-top:10px">
+      <input id="bn_${b.id}" value="${esc(b.name)}" placeholder="اسم الفرع">
+      <input id="ba_${b.id}" value="${esc(b.address||'')}" placeholder="العنوان">
+      <input id="bl_${b.id}" value="${esc(b.location_url||'')}" placeholder="رابط الموقع على الخريطة">
+      <input id="bf_${b.id}" type="number" value="${b.monthly_fee}" placeholder="الرسم الشهري">
+      <input id="bd_${b.id}" type="number" value="${b.admission_fee}" placeholder="رسوم القبول">
+      <label class="note">صورة الفرع: <input type="file" id="bp_${b.id}" accept="image/*"></label>
+    </div>
+    <div style="margin-top:10px"><button class="b g" onclick="saveBranch('${b.id}')">حفظ بيانات الفرع</button></div></div>`).join('')
+  ||'<div class="card note">لا توجد فروع بعد.</div>'}
+  <div class="card"><h3>إضافة فرع جديد</h3>
+    <div class="row">
+      <input id="nbName" placeholder="اسم الفرع، مثال: مدرسة الإتقان — الفرع الخامس">
+      <input id="nbAddr" placeholder="العنوان">
+      <input id="nbLoc" placeholder="رابط الموقع على الخريطة">
+      <input id="nbFee" type="number" placeholder="الرسم الشهري" value="20">
+      <input id="nbAdm" type="number" placeholder="رسوم القبول" value="0">
+    </div>
+    <div style="margin-top:10px"><button class="b g" onclick="addBranch()">حفظ الفرع الجديد</button></div></div>`;
+
+async function uploadBranchPhoto(bid,file){
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+  const path=`branches/${bid}/${Date.now()}.${ext}`;
+  const {error}=await db.storage.from('itqan-media').upload(path,file,{contentType:file.type||undefined,upsert:false});
+  if(error) throw new Error(error.message);
+  return path;
+}
+
+async function saveBranch(id){
+  try{
+    const name=$('bn_'+id).value.trim();
+    if(!name) return msg('اكتب اسم الفرع');
+    const row={name,address:$('ba_'+id).value.trim()||null,location_url:$('bl_'+id).value.trim()||null,
+      monthly_fee:+$('bf_'+id).value||0,admission_fee:+$('bd_'+id).value||0};
+    const f=$('bp_'+id).files[0];
+    if(f) row.photo_path=await uploadBranchPhoto(id,f);
+    dbDo(db.from('itqan_branches').update(row).eq('id',id),'تم حفظ بيانات الفرع ✓');
+  }catch(e){ msg('تعذّر الحفظ: '+e.message); }
+}
 
 function addBranch(){
   const name=$('nbName').value.trim();
   if(!name) return msg('اكتب اسم الفرع');
   const id='itqan-'+Date.now().toString(36);
-  dbDo(db.from('itqan_branches').insert({id,name,monthly_fee:+$('nbFee').value||0,admission_fee:+$('nbAdm').value||0,sort_order:BR.length+1}),'تمت إضافة الفرع ✓');
+  dbDo(db.from('itqan_branches').insert({id,name,address:$('nbAddr').value.trim()||null,location_url:$('nbLoc').value.trim()||null,
+    monthly_fee:+$('nbFee').value||0,admission_fee:+$('nbAdm').value||0,sort_order:BR.length+1}),'تمت إضافة الفرع ✓');
 }
 
 RV.halaqat=()=>{
