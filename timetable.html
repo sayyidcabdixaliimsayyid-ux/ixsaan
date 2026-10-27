@@ -59,8 +59,31 @@ td.c.hl{background:var(--hl)}td.c.dim{opacity:.3}td.c.empty{color:var(--mut)}
 @keyframes ihsanBeam{0%,60%{left:-60%}80%,100%{left:120%}}
 </style>
 <style>body.ro #reset{display:none}body.ro td.c{cursor:default}</style>
+<style id="mhb-style">
+.mhb{position:relative;overflow:hidden;direction:rtl;display:flex;align-items:center;justify-content:center;min-height:170px;padding:18px 16px;background:radial-gradient(ellipse at 50% 0%,#17694a 0%,#0b3d2a 55%,#062618 100%);box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.mhb .stage{position:relative;width:min(88vw,640px);aspect-ratio:2563/504;filter:drop-shadow(0 0 10px rgba(212,175,55,.35))}
+.mhb .mh{position:absolute;inset:0;-webkit-mask:url(maahad-gold.png) center/contain no-repeat;mask:url(maahad-gold.png) center/contain no-repeat;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.95) 50%,transparent 65%) no-repeat,linear-gradient(100deg,#8a6a1f 0%,#d4af37 25%,#fff3b0 42%,#d4af37 55%,#8a6a1f 75%,#e8c75a 100%);background-size:250% 100%,100% 100%;animation:mhbFlip 12s ease-in-out infinite,mhbShine 3s linear infinite;backface-visibility:visible}
+.mhb .ih{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:14px;padding:12px;opacity:0;animation:mhbIhsan 12s ease-in-out infinite}
+.mhb .ih img{max-width:100%;max-height:100%;object-fit:contain}
+@keyframes mhbFlip{
+0%{opacity:0;transform:rotateY(0) scale(.7)}
+6%{opacity:1;transform:rotateY(0) scale(1)}
+22%{opacity:1;transform:rotateY(360deg) scale(1.12)}
+26%{opacity:0;transform:rotateY(360deg) scale(.9)}
+62%{opacity:0;transform:rotateY(0) scale(.7)}
+68%{opacity:1;transform:rotateY(0) scale(1)}
+84%{opacity:1;transform:rotateY(360deg) scale(1.12)}
+90%{opacity:0;transform:rotateY(360deg) scale(.9)}
+100%{opacity:0;transform:rotateY(0) scale(.7)}}
+@keyframes mhbIhsan{
+0%,24%{opacity:0;transform:scale(.85)}
+30%,54%{opacity:1;transform:scale(1)}
+60%,100%{opacity:0;transform:scale(.85)}}
+@keyframes mhbShine{0%{background-position:200% 0,0 0}100%{background-position:-100% 0,0 0}}
+</style>
 </head>
 <body>
+<div class="mhb" role="banner"><div class="stage"><div class="mh" role="img" aria-label="شعار معهد الإحسان لإعداد العلماء"></div><div class="ih"><img src="ihsan-logo.png" alt="شعار منظمة الإحسان"></div></div></div>
 <div id="gate" style="position:fixed;inset:0;background:#faf7f2;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px"><div style="background:#fff;border-radius:14px;padding:22px;width:100%;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.12)"><h3 style="margin:0 0 12px;color:#e8501f">تسجيل الدخول</h3><input id="gEmail" type="email" placeholder="البريد الإلكتروني" style="width:100%;margin:6px 0"><input id="gPass" type="password" placeholder="كلمة المرور" style="width:100%;margin:6px 0"><button class="btn pri" onclick="ttLogin()" style="width:100%;margin-top:6px">دخول</button><div id="gateMsg" style="color:#b3261e;min-height:20px;margin-top:6px"></div></div></div>
 <header><h1>معهد الإحسان لإعداد العلماء</h1><p>جدول الفصل الدراسي الثاني ١٤٤٨هـ / ٢٠٢٦م</p><div style="margin-top:6px"><a href="dashboard.html" style="color:#fff;font-size:.85rem">← لوحة التحكم</a></div><a href="index.html" class="ihsanLink" style="position:absolute;left:14px;top:12px"><img class="ihsanImg" src="ihsan-logo.png" alt="الرئيسية - منظمة الإحسان" style="height:44px;background:#fff;border-radius:8px;padding:4px"></a></header>
 <div class="bar">
