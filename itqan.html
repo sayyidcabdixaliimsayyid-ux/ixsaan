@@ -208,6 +208,14 @@ body.ro-modal #stuOv input,body.ro-modal #stuOv select{pointer-events:none;opaci
 .roNote{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
 body.ro-view #content button:not(.tile):not(.hBtn):not(.b.m):not(.keepRO):not(.lnk){pointer-events:none;opacity:.45}
 body.ro-view #content input:not([type=month]){pointer-events:none;opacity:.7}
+/* شعار الجمعية الكبير في شاشة الدخول */
+#login{display:flex;flex-direction:column;align-items:center;gap:18px;padding:20px 12px}
+.heroLogo{position:relative;overflow:hidden;border-radius:32px;padding:16px 22px;background:radial-gradient(circle at 50% 40%,#fffdf5,#f1e7cc 75%);box-shadow:0 26px 60px rgba(20,83,45,.28);display:inline-block;max-width:96vw}
+.heroLogo img{display:block;height:min(70vh,860px);width:auto;max-width:90vw;animation:heroMove 9s ease-in-out infinite;filter:drop-shadow(0 12px 24px rgba(0,0,0,.25))}
+.heroLogo::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,215,120,.5) 50%,transparent 65%);transform:translateX(-120%);animation:shineSlow 6s ease-in-out infinite;pointer-events:none}
+@keyframes heroMove{0%,100%{transform:translate(0,0) rotate(-1.2deg) scale(1)}25%{transform:translate(8px,-10px) rotate(0deg) scale(1.02)}50%{transform:translate(0,-18px) rotate(1.2deg) scale(1.04)}75%{transform:translate(-8px,-8px) rotate(0deg) scale(1.02)}}
+.heroLogo img{height:auto!important;width:min(88vw,920px)!important;max-width:88vw!important}
+.heroLogo{padding:22px 28px}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -217,9 +225,9 @@ body.ro-view #content input:not([type=month]){pointer-events:none;opacity:.7}
 
 <div id="gate">
   <div id="login">
-    <div class="logoBox"><img src="logo.png" alt="شعار معهد الإحسان"></div>
+    <div class="heroLogo"><img src="quran-logo.png" alt="شعار الجمعية القرآنية في كينيا" onerror="this.onerror=null;this.src='ihsan-logo.png'"></div>
     <div class="loginCard">
-      <h2>أهلاً بكم في نظام مدارس الإتقان</h2>
+      <h2>أهلاً بكم في نظام الجمعية لإدارة مدارس الإتقان</h2>
       <input id="gEmail" type="email" placeholder="البريد الإلكتروني">
       <input id="gPass" type="password" placeholder="كلمة المرور">
       <button onclick="login()">دخول</button>
