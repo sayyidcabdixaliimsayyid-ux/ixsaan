@@ -203,8 +203,8 @@ body.ro #content select[onchange^="setTeacher"],
 body.ro #content select[id^="cg_"],body.ro #content select[id^="ch_"],
 body.ro #content select[id="rGender"],body.ro #content select[id="rHalaqa"]{pointer-events:none;opacity:.7}
 body.ro-assoc .wr{display:none!important}
-body.ro #stuOv .b.g{display:none!important}
-body.ro #stuOv input,body.ro #stuOv select{pointer-events:none;opacity:.7}
+body.ro-modal #stuOv .b.g{display:none!important}
+body.ro-modal #stuOv input,body.ro-modal #stuOv select{pointer-events:none;opacity:.7}
 .roNote{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
 body.ro-view #content button:not(.tile):not(.hBtn):not(.b.m):not(.keepRO):not(.lnk){pointer-events:none;opacity:.45}
 body.ro-view #content input:not([type=month]){pointer-events:none;opacity:.7}
@@ -372,6 +372,7 @@ function paint(){
   document.body.classList.toggle('ro-view',viewAll);
   document.body.classList.toggle('ro-assoc',roInt);
   document.body.classList.toggle('ro',viewAll||(roInt&&['halaqat','register','complete','progress','finance'].includes(V.tab)));
+  document.body.classList.toggle('ro-modal',viewAll||roInt);
   const roMsg=viewAll?'عرض فقط: هذا الحساب للاطلاع دون تعديل':'عرض فقط: الإدارة الداخلية للفرع تُدار من حساب مدير الفرع';
   $('content').innerHTML=(document.body.classList.contains('ro')?`<div class="roNote">${roMsg}</div>`:'')+info+(RV[V.tab]?RV[V.tab]():'');
 }
@@ -869,7 +870,7 @@ function closeStu(){ V.stu=''; const o=$('stuOv'); if(o) o.remove(); }
 function renderStu(){
   const s=ST.find(x=>x.id===V.stu);
   if(!s){ closeStu(); return; }
-  const canEdit=ME.role!=='itqan_cashier';
+  const canEdit=ME.role!=='itqan_cashier'&&!document.body.classList.contains('ro-modal');
   const hh=haOf(s.halaqa_id);
   const bfee=brOf(s.branch_id)?.monthly_fee;
   let o=$('stuOv');
