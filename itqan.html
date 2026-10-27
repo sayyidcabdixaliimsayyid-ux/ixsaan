@@ -135,7 +135,7 @@ tr:nth-child(even) td{background:#fdfaf2}
 .dl{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:14px}
 @media(max-width:560px){.dl{grid-template-columns:1fr}}
 body,button,input,select,textarea,table{font-family:'Tajawal',Tahoma,sans-serif!important}
-.showLogo{display:flex;justify-content:center;align-items:center;padding:18px 14px;margin:6px 0 18px;border-radius:22px;background:linear-gradient(135deg,#0b2f22,#14532d 55%,#0b2f22);box-shadow:0 16px 40px rgba(20,83,45,.35);overflow:hidden;position:relative}
+.showLogo{display:flex;justify-content:center;align-items:center;padding:18px 14px;margin:6px 0 18px;border-radius:22px;background:linear-gradient(135deg,var(--c1,#0b2f22),var(--c2,#14532d) 55%,var(--c1,#0b2f22));box-shadow:0 16px 40px rgba(20,83,45,.35);overflow:hidden;position:relative}
 .goldLogo{width:min(760px,100%);aspect-ratio:914/220;position:relative;z-index:1;
   background:linear-gradient(115deg,#7a5a12 0%,#d4a53a 20%,#fff1b5 38%,#e7b94a 52%,#9c7317 72%,#f5d77a 90%);
   -webkit-mask:url(itqan-branch1-logo.png) center/contain no-repeat;mask:url(itqan-branch1-logo.png) center/contain no-repeat;
@@ -147,7 +147,7 @@ body,button,input,select,textarea,table{font-family:'Tajawal',Tahoma,sans-serif!
 @keyframes btnShine{0%{transform:translateX(-120%)}60%,100%{transform:translateX(120%)}}
 .showTop{margin:6px 0 12px}
 .hGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
-.hBtn{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:24px 16px;border:none;border-radius:18px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#166534,#15803d 55%,#0f766e);box-shadow:0 10px 26px rgba(21,128,61,.35);transition:transform .25s,box-shadow .25s}
+.hBtn{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:24px 16px;border:none;border-radius:18px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--b1,#166534),var(--b2,#15803d) 55%,var(--b3,#0f766e));box-shadow:0 10px 26px rgba(21,128,61,.35);transition:transform .25s,box-shadow .25s}
 .hBtn:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(21,128,61,.45)}
 .hBtn::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);animation:btnShine 4.5s ease-in-out infinite;pointer-events:none}
 .hName{font-size:20px;font-weight:800}
@@ -216,6 +216,8 @@ body.ro-view #content input:not([type=month]){pointer-events:none;opacity:.7}
 @keyframes heroMove{0%,100%{transform:translate(0,0) rotate(-1.2deg) scale(1)}25%{transform:translate(8px,-10px) rotate(0deg) scale(1.02)}50%{transform:translate(0,-18px) rotate(1.2deg) scale(1.04)}75%{transform:translate(-8px,-8px) rotate(0deg) scale(1.02)}}
 .heroLogo img{height:auto!important;width:min(88vw,920px)!important;max-width:88vw!important}
 .heroLogo{padding:22px 28px}
+.plainLogo{background:#fff!important;border:1px solid rgba(0,0,0,.06)}
+.plainLogo img{width:min(760px,100%);height:auto;display:block;animation:logoSway 9s ease-in-out infinite;filter:drop-shadow(0 8px 16px rgba(0,0,0,.18))}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -382,7 +384,9 @@ function paint(){
   document.body.classList.toggle('ro',viewAll||(roInt&&['halaqat','register','complete','progress','finance'].includes(V.tab)));
   document.body.classList.toggle('ro-modal',viewAll||roInt);
   const roMsg=viewAll?'عرض فقط: هذا الحساب للاطلاع دون تعديل':'عرض فقط: الإدارة الداخلية للفرع تُدار من حساب مدير الفرع';
-  $('content').innerHTML=(document.body.classList.contains('ro')?`<div class="roNote">${roMsg}</div>`:'')+info+(RV[V.tab]?RV[V.tab]():'');
+  const topBan=(rk()==='association'&&!V.show)?assocBanner:(rk()==='branch'&&V.tab!=='branches'?logoHeader(brOf(ME.branch_id)):'');
+  $('content').setAttribute('style',themeCss(V.show||ME.branch_id||V.branch||''));
+  $('content').innerHTML=topBan+(document.body.classList.contains('ro')?`<div class="roNote">${roMsg}</div>`:'')+info+(RV[V.tab]?RV[V.tab]():'');
 }
 
 function statsHtml(){
@@ -430,9 +434,19 @@ const isFeat=b=>/الأول|الاول/.test(b.name||'')||BR[0]?.id===b.id;
 function openShow(bid){ V.show=bid; V.hl=''; paint(); }
 function leaveShow(){ V.show=''; V.hl=''; paint(); }
 function openHalaqa(hid){ V.hl=hid; paint(); }
+const BANNERS=['itqan-branch1-logo.png','branch2-banner.png','branch3-banner.png'];
+const THEMES=[
+  {c1:'#0b2f22',c2:'#14532d',b1:'#166534',b2:'#15803d',b3:'#0f766e'},
+  {c1:'#0b1f3a',c2:'#1e3a8a',b1:'#1e40af',b2:'#2563eb',b3:'#0e7490'},
+  {c1:'#2e1065',c2:'#6b21a8',b1:'#6d28d9',b2:'#7e22ce',b3:'#a21caf'}];
+const brIdx=bid=>Math.max(0,BR.findIndex(x=>x.id===bid));
+const themeCss=bid=>{const t=THEMES[brIdx(bid)%THEMES.length];return `--c1:${t.c1};--c2:${t.c2};--b1:${t.b1};--b2:${t.b2};--b3:${t.b3}`};
 function logoHeader(b){
-  return `<div class="showLogo"><div class="goldLogo" role="img" aria-label="${esc(b?.name||'')}"></div></div>`;
+  const i=brIdx(b?.id);
+  if(i===0) return `<div class="showLogo"><div class="goldLogo" role="img" aria-label="${esc(b?.name||'')}"></div></div>`;
+  return `<div class="showLogo plainLogo"><img src="${BANNERS[i]||BANNERS[0]}" alt="${esc(b?.name||'')}"></div>`;
 }
+const assocBanner=`<div class="showLogo plainLogo"><img src="assoc-banner.png" alt="الجمعية القرآنية في كينيا"></div>`;
 function showBranch(bid){
   const b=brOf(bid);
   if(V.hl) return halaqaView(bid,V.hl);
