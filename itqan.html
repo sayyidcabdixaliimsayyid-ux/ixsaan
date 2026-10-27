@@ -136,7 +136,11 @@ tr:nth-child(even) td{background:#fdfaf2}
 @media(max-width:560px){.dl{grid-template-columns:1fr}}
 body,button,input,select,textarea,table{font-family:'Tajawal',Tahoma,sans-serif!important}
 .showLogo{display:flex;justify-content:center;align-items:center;padding:18px 14px;margin:6px 0 18px;border-radius:22px;background:linear-gradient(135deg,#0b2f22,#14532d 55%,#0b2f22);box-shadow:0 16px 40px rgba(20,83,45,.35);overflow:hidden;position:relative}
-.showLogo img{width:min(760px,100%);height:auto;animation:logoSway 9s ease-in-out infinite;filter:drop-shadow(0 8px 18px rgba(0,0,0,.4))}
+.goldLogo{width:min(760px,100%);aspect-ratio:914/220;position:relative;z-index:1;
+  background:linear-gradient(115deg,#7a5a12 0%,#d4a53a 20%,#fff1b5 38%,#e7b94a 52%,#9c7317 72%,#f5d77a 90%);
+  -webkit-mask:url(itqan-branch1-logo.png) center/contain no-repeat;mask:url(itqan-branch1-logo.png) center/contain no-repeat;
+  animation:logoSway 9s ease-in-out infinite;
+  filter:drop-shadow(0 0 12px rgba(255,205,90,.65)) drop-shadow(0 6px 14px rgba(0,0,0,.45))}
 .showLogo::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,215,120,.32) 50%,transparent 65%);transform:translateX(-120%);animation:shineSlow 7s ease-in-out infinite;pointer-events:none}
 @keyframes logoSway{0%,100%{transform:translateY(0) rotate(-.6deg)}50%{transform:translateY(-8px) rotate(.6deg)}}
 @keyframes shineSlow{0%{transform:translateX(-120%)}55%,100%{transform:translateX(120%)}}
@@ -151,7 +155,7 @@ body,button,input,select,textarea,table{font-family:'Tajawal',Tahoma,sans-serif!
 .hCount{font-size:12px;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px}
 .hHead{background:#fff;border-radius:16px;padding:16px 18px;border:1px solid #e5e7eb;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
 .hHead h2{margin:0;font-size:24px;font-weight:800;flex:1}
-.sGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.sGrid{display:grid;grid-template-columns:1fr;gap:10px;max-width:760px;margin:0 auto}
 .sCard{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-weight:700}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -359,7 +363,7 @@ function openShow(bid){ V.show=bid; V.hl=''; paint(); }
 function leaveShow(){ V.show=''; V.hl=''; paint(); }
 function openHalaqa(hid){ V.hl=hid; paint(); }
 function logoHeader(b){
-  return `<div class="showLogo"><img src="itqan-branch1-logo.png" alt="${esc(b?.name||'')}" onerror="this.style.display='none'"></div>`;
+  return `<div class="showLogo"><div class="goldLogo" role="img" aria-label="${esc(b?.name||'')}"></div></div>`;
 }
 function showBranch(bid){
   const b=brOf(bid);
