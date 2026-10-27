@@ -157,6 +157,33 @@ body,button,input,select,textarea,table{font-family:'Tajawal',Tahoma,sans-serif!
 .hHead h2{margin:0;font-size:24px;font-weight:800;flex:1}
 .sGrid{display:grid;grid-template-columns:1fr;gap:10px;max-width:760px;margin:0 auto}
 .sCard{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-weight:700}
+.fin{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.finHead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.finHead h3{margin:0;font-size:22px;font-weight:800}
+.finCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.fc{border-radius:18px;padding:18px 20px;color:#fff;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 26px rgba(0,0,0,.16)}
+.fc span{font-size:14px;opacity:.92}
+.fc b{font-size:30px;font-weight:800}
+.fc.ok{background:linear-gradient(135deg,#166534,#22c55e)}
+.fc.bad{background:linear-gradient(135deg,#7f1d1d,#ef4444)}
+.fc.info{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+.finT{width:100%;border-collapse:collapse;background:#fff}
+.finT th,.finT td{padding:10px;border-bottom:1px solid #eef0f3;text-align:center}
+.finT th{background:#14532d;color:#fff;font-weight:800}
+.finT .pos{color:#15803d;font-weight:800}
+.finT .neg{color:#b91c1c;font-weight:800}
+.finT tr.tot td{background:#fef3c7;font-weight:800}
+.bars{height:7px;background:#eef0f3;border-radius:4px;overflow:hidden;margin:3px 0}
+.bars i{display:block;height:100%;border-radius:4px}
+.bi{background:linear-gradient(90deg,#4ade80,#15803d)}
+.be{background:linear-gradient(90deg,#fca5a5,#b91c1c)}
+.expT{border-collapse:collapse;background:#fff}
+.expT th,.expT td{padding:6px;border-bottom:1px solid #eef0f3;white-space:nowrap;text-align:center}
+.expT th{background:#14532d;color:#fff;font-weight:800}
+.expT td:first-child{text-align:right;font-weight:700;background:#f8fafc}
+.expT input{width:86px;padding:5px;border:1px solid #d6dbe3;border-radius:8px;text-align:center}
+.expT tr.tot td{background:#fef3c7;font-weight:800}
+.rowT{font-weight:800;color:#14532d}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -224,7 +251,7 @@ const TABS={
 const BRANCH_TABS=['halaqat','register','complete','progress','finance','people'];
 const DEFAULT_TAB={association:'branches',branch:'halaqat',cashier:'finance'};
 
-let ME=null, BR=[], TE=[], HA=[], ST=[], PY=[], PEOPLE=[], MG=[];
+let ME=null, BR=[], TE=[], HA=[], ST=[], PY=[], PEOPLE=[], MG=[], EX=[];
 const monthNow=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
 const V={tab:'',branch:'',fh:'all',ft:'all',fg:'all',group:'halaqa',month:monthNow(),sub:''};
 
@@ -283,7 +310,8 @@ async function loadAll(){
     db.from('itqan_halaqat').select('*').order('name').range(0,9999),
     db.from('itqan_students').select('*').order('full_name').range(0,9999),
     db.from('itqan_payments').select('*').range(0,9999),
-    db.from('itqan_managers').select('*').order('full_name').range(0,9999)
+    db.from('itqan_managers').select('*').order('full_name').range(0,9999),
+    db.from('itqan_expenses').select('*').range(0,9999)
   ];
   if(rk()==='association') q.push(db.from('profiles').select('id,full_name,role,branch_id').in('role',Object.keys(ROLE_LABEL)));
   const r=await Promise.all(q);
@@ -291,7 +319,8 @@ async function loadAll(){
   if(bad) msg('تعذّر التحميل: '+bad.error.message);
   BR=r[0].data||[]; TE=r[1].data||[]; HA=r[2].data||[]; ST=r[3].data||[]; PY=r[4].data||[];
   MG=r[5].data||[];
-  PEOPLE=r[6]?.data||[];
+  EX=r[6]?.data||[];
+  PEOPLE=r[7]?.data||[];
 }
 
 async function dbDo(p,ok){
@@ -425,7 +454,7 @@ RV.addbranch=()=>`${manageTools()}${BR.map(b=>`<div class="card binfo" style="fl
       <input id="nbName" placeholder="اسم الفرع، مثال: مدرسة الإتقان — الفرع الخامس">
       <input id="nbAddr" placeholder="العنوان">
       <input id="nbLoc" placeholder="رابط الموقع على الخريطة">
-      <input id="nbFee" type="number" placeholder="الرسم الشهري" value="20">
+      <input id="nbFee" type="number" placeholder="الرسم الشهري" value="8000">
       <input id="nbAdm" type="number" placeholder="رسوم القبول" value="0">
     </div>
     <div style="margin-top:10px"><button class="b g" onclick="addBranch()">حفظ الفرع الجديد</button></div></div>`;
@@ -580,19 +609,19 @@ async function importExcel(){
           if(prev){
             const patch={};
             if(!prev.gender&&gen) patch.gender=gen;
-            if(amt===0&&!prev.exempt) patch.exempt=true;
-            else if(!isNaN(amt)&&amt>0&&amt!==branchFee&&prev.monthly_fee==null&&!prev.exempt) patch.monthly_fee=amt;
+            if(!isNaN(amt)&&amt>0&&amt!==branchFee&&prev.monthly_fee==null&&!prev.exempt) patch.monthly_fee=amt;
             if(Object.keys(patch).length) fills.push({id:prev.id,patch});
           }
           return;
         }
         existing.add(k);
-        out.push({branch_id:bid,full_name:n,gender:gen,halaqa_id:hid,exempt:amt===0,monthly_fee:(!isNaN(amt)&&amt>0&&amt!==branchFee)?amt:null});
+        out.push({branch_id:bid,full_name:n,gender:gen,halaqa_id:hid,exempt:false,monthly_fee:(!isNaN(amt)&&amt>0&&amt!==branchFee)?amt:null});
         c++;
       });
       report.push(`${p.halaqa}: ${c}`);
     });
-    const exN=out.filter(x=>x.exempt).length, redN=out.filter(x=>x.monthly_fee!=null).length;
+    const redN=out.filter(x=>x.monthly_fee!=null).length;
+    const zeroN=parsed.reduce((a,p)=>a+p.students.filter(st=>st.amt!==''&&st.amt!=null&&Number(st.amt)===0).length,0);
     let filled=0;
     for(const f of fills){ const {error}=await db.from('itqan_students').update(f.patch).eq('id',f.id); if(!error) filled++; }
     if(!out.length){
@@ -604,7 +633,7 @@ async function importExcel(){
       if(error) return msg('تعذّر الاستيراد عند الطالب '+(i+1)+': '+error.message);
     }
     await loadAll();
-    msg(`تم استيراد ${out.length} طالباً في ${parsed.length} حلقة ✓`+(newH.length?` — أُنشئت ${newH.length} حلقة`:'')+(newT.length?` وأُنشئ ${newT.length} معلماً`:'')+(dup?` — تُخطّي ${dup} مكرراً`:'')+` — معفون: ${exN}، مخفّض: ${redN}`+(filled?` — حُدّث ${filled} موجوداً`:'')+' — راجع الجنس من «استكمال بيانات الطلاب»',true);
+    msg(`تم استيراد ${out.length} طالباً في ${parsed.length} حلقة ✓`+(newH.length?` — أُنشئت ${newH.length} حلقة`:'')+(newT.length?` وأُنشئ ${newT.length} معلماً`:'')+(dup?` — تُخطّي ${dup} مكرراً`:'')+` — مخفّض: ${redN}، لم يسدّدوا: ${zeroN}`+(filled?` — حُدّث ${filled} موجوداً`:'')+' — راجع الجنس من «استكمال بيانات الطلاب»',true);
     paint();
   }catch(e){ msg('تعذّر قراءة الملف: '+e.message); }
 }
@@ -800,7 +829,7 @@ function saveProgress(id){
   }).eq('id',id),'تم حفظ المتابعة ✓');
 }
 
-const feeOf=s=>s.exempt?0:(s.monthly_fee!=null?Number(s.monthly_fee):Number(brOf(s.branch_id)?.monthly_fee||0));
+const feeOf=s=>s.exempt?0:(s.monthly_fee!=null?Number(s.monthly_fee):Number(brOf(s.branch_id)?.monthly_fee||8000));
 const feeStatus=s=>s.exempt?'معفى':((s.monthly_fee!=null&&Number(s.monthly_fee)!==Number(brOf(s.branch_id)?.monthly_fee))?'مخفّض':'كامل');
 const sName=s=>`<span class="lnk" onclick="openStu('${s.id}')">${esc(s.full_name)}</span>`;
 
@@ -862,6 +891,79 @@ function saveFee(id){
 }
 
 /* ===== المالية ===== */
+const EXP_CATS=['أدوات النظافة','الإيجار','كهرباء','تحديث دورات المياه','صيانة','مكافأة الممتحن','غذاء لجنة الإختبارات','ممتحن خارجي','طباعة أوراق الرصيد','الرواتب','أوراق الطابعة','نشاط للطلاب','مواسير دورات المياه','دفاتر التحضير','توصيلة','مصور الحفل','غسيل الفرش','حبر الطابعة','النوار','مصروفات إضافية الجمعية'];
+const MONTHS_AR=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const mKey=(y,i)=>`${y}-${String(i+1).padStart(2,'0')}`;
+const fmtN=n=>Number(n||0).toLocaleString('en-US');
+const expOf=(bid,mk,c)=>{const r=EX.find(x=>x.branch_id===bid&&x.month===mk&&x.category===c);return r?Number(r.amount):null};
+const expTotal=(bid,mk)=>EX.filter(x=>x.branch_id===bid&&x.month===mk).reduce((a,x)=>a+Number(x.amount||0),0);
+const incomeOf=(bid,mk)=>{const ids=new Set(ST.filter(s=>s.branch_id===bid).map(s=>s.id));return PY.filter(p=>p.month===mk&&ids.has(p.student_id)).reduce((a,p)=>a+Number(p.amount||0),0)};
+
+/* ===== التقرير المالي السنوي ===== */
+function finReport(b,canEdit){
+  const y=V.year||new Date().getFullYear();
+  const rows=MONTHS_AR.map((m,i)=>{const mk=mKey(y,i);const inc=incomeOf(b.id,mk);const exp=expTotal(b.id,mk);return {m,mk,inc,exp,rem:inc-exp};});
+  const T=rows.reduce((a,r)=>({inc:a.inc+r.inc,exp:a.exp+r.exp,rem:a.rem+r.rem}),{inc:0,exp:0,rem:0});
+  const maxV=Math.max(1,...rows.map(r=>Math.max(r.inc,r.exp)));
+  const pct=v=>Math.round(v/maxV*100);
+  return `<div class="fin">
+    <div class="finHead"><div><h3>التقرير المالي ${y}</h3><div class="note">${esc(b.name)}</div></div>
+      <label>السنة: <select onchange="setV('year',Number(this.value))">${[y-1,y,y+1].map(v=>`<option value="${v}" ${v===y?'selected':''}>${v}</option>`).join('')}</select></label></div>
+    <div class="finCards">
+      <div class="fc ok"><span>إجمالي الواردات</span><b>${fmtN(T.inc)}</b></div>
+      <div class="fc bad"><span>إجمالي المصروفات</span><b>${fmtN(T.exp)}</b></div>
+      <div class="fc info"><span>الربح المتبقي للسنة</span><b>${fmtN(T.rem)}</b></div>
+    </div>
+    <div class="tw"><table class="finT">
+      <tr><th>الشهر</th><th>الوارد</th><th>المصروفات</th><th>المتبقي</th><th>مقارنة</th></tr>
+      ${rows.map(r=>`<tr><td>${r.m}</td><td>${fmtN(r.inc)}</td><td>${fmtN(r.exp)}</td>
+        <td class="${r.rem>=0?'pos':'neg'}">${fmtN(r.rem)}</td>
+        <td style="min-width:150px"><div class="bars"><i class="bi" style="width:${pct(r.inc)}%"></i></div><div class="bars"><i class="be" style="width:${pct(r.exp)}%"></i></div></td></tr>`).join('')}
+      <tr class="tot"><td>المجموع</td><td>${fmtN(T.inc)}</td><td>${fmtN(T.exp)}</td><td class="${T.rem>=0?'pos':'neg'}">${fmtN(T.rem)}</td><td></td></tr>
+    </table></div>
+    <p class="note">الوارد = الرسوم المسدّدة في كل شهر. الرسم الأصلي للطالب 8000 ما لم يُعدَّل فردياً.</p>
+    <div><button class="b ${V.expOpen?'m':'g'}" onclick="setV('expOpen',!V.expOpen)">${V.expOpen?'إخفاء جدول المصروفات':'إدخال المصروفات الشهرية'}</button></div>
+    ${V.expOpen?expEntry(b,y,canEdit):''}
+  </div>`;
+}
+
+function expEntry(b,y,canEdit){
+  const colT=i=>EXP_CATS.reduce((a,c)=>a+(expOf(b.id,mKey(y,i),c)||0),0);
+  return `<div class="card"><h3>المصروفات الشهرية ${y}</h3>
+  <div class="tw"><table class="expT">
+    <tr><th>البند</th>${MONTHS_AR.map(m=>`<th>${m}</th>`).join('')}<th>المجموع</th></tr>
+    ${EXP_CATS.map((c,ci)=>`<tr><td>${esc(c)}</td>${MONTHS_AR.map((_,i)=>{const v=expOf(b.id,mKey(y,i),c);return `<td><input id="ex_${ci}_${i}" type="number" min="0" value="${v??''}" ${canEdit?'':'disabled'}></td>`}).join('')}
+      <td class="rowT">${fmtN(MONTHS_AR.reduce((a,_,i)=>a+(expOf(b.id,mKey(y,i),c)||0),0))}</td></tr>`).join('')}
+    <tr class="tot"><td>مجموع المصروفات</td>${MONTHS_AR.map((_,i)=>`<td>${fmtN(colT(i))}</td>`).join('')}<td>${fmtN(MONTHS_AR.reduce((a,_,i)=>a+colT(i),0))}</td></tr>
+  </table></div>
+  ${canEdit?`<div style="margin-top:10px"><button class="b g" onclick="saveExp('${b.id}',${y})">حفظ المصروفات</button></div>`:'<p class="note">العرض فقط لأمين الصندوق.</p>'}</div>`;
+}
+
+async function saveExp(bid,y){
+  const ups=[], dels=[];
+  for(let ci=0;ci<EXP_CATS.length;ci++){
+    for(let i=0;i<12;i++){
+      const el=$(`ex_${ci}_${i}`); if(!el) continue;
+      const v=el.value.trim(), mk=mKey(y,i), c=EXP_CATS[ci], cur=expOf(bid,mk,c);
+      if(v===''){ if(cur!==null) dels.push({mk,c}); continue; }
+      const n=Number(v);
+      if(isNaN(n)||n<0) return msg('مبلغ غير صحيح: '+c+' — '+MONTHS_AR[i]);
+      if(cur===null||cur!==n) ups.push({branch_id:bid,month:mk,category:c,amount:n});
+    }
+  }
+  if(!ups.length&&!dels.length) return msg('لا توجد تغييرات للحفظ');
+  for(const d of dels){
+    const {error}=await db.from('itqan_expenses').delete().eq('branch_id',bid).eq('month',d.mk).eq('category',d.c);
+    if(error) return msg('تعذّر الحذف: '+error.message);
+  }
+  if(ups.length){
+    const {error}=await db.from('itqan_expenses').upsert(ups,{onConflict:'branch_id,month,category'});
+    if(error) return msg('تعذّر الحفظ: '+error.message);
+  }
+  await loadAll(); msg('تم حفظ المصروفات ✓',true); paint();
+}
+
+
 RV.finance=()=>{
   const b=brOf(scope()); if(!b) return noB();
   const canEdit=ME.role!=='itqan_cashier';
@@ -871,7 +973,7 @@ RV.finance=()=>{
   const need=due.reduce((a,s)=>a+feeOf(s),0);
   const coll=PY.filter(p=>p.month===V.month&&list.some(s=>s.id===p.student_id)).reduce((a,p)=>a+Number(p.amount||0),0);
   const exL=list.filter(s=>s.exempt||(s.monthly_fee!=null&&Number(s.monthly_fee)!==Number(b.monthly_fee)));
-  return `<div class="card"><div class="row"><b>الرسم الأصلي: ${b.monthly_fee}</b><b>رسوم القبول: ${b.admission_fee}</b>
+  return finReport(b,canEdit)+`<div class="card"><div class="row"><b>الرسم الأصلي: ${b.monthly_fee}</b><b>رسوم القبول: ${b.admission_fee}</b>
     <span class="ok">سدّد هذا الشهر: ${paidN} من ${due.length}</span><span>المطلوب: ${need}</span><span>المحصّل: ${coll}</span>
     <button class="b g" onclick="setV('fx',!V.fx)">${V.fx?'إخفاء القائمة':'قائمة المعفيين والمخفّضين'} (${exL.length})</button></div></div>
   ${V.fx?`<div class="card"><h3>المعفيون والمخفّضون</h3><div class="tw"><table><tr><th>الطالب</th><th>الحلقة</th><th>المطلوب شهرياً</th><th>الحالة</th><th>ملاحظة</th></tr>
