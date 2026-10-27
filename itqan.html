@@ -268,7 +268,7 @@ const ROLE_LABEL={itqan_association_manager:'مدير الجمعية',itqan_bran
 const KIND={rw:'حلقة القراءة والكتابة',quran:'حلقة قرآن'};
 const GN=new Proxy({boy:'طالب',girl:'طالبة'},{get:(t,k)=>t[k]||'—'});
 const TABS={
-  association:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إدارة فرع','c-blue','🛠️','بيانات الفروع وإضافة فرع'],['halaqat','الحلقات والطلاب','c-teal','📚','الحلقات حسب الفرز'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية ومتابعتها','c-red','💰','السداد والمتأخرات'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
+  association:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إدارة فرع','c-blue','🛠️','بيانات الفروع وإضافة فرع'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
   branch:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','حلقات الفرع وطلابها'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['halaqat','الحلقات','c-teal','📚','الحلقات والطلاب'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية','c-red','💰','السداد والمتأخرات'],['people','المعلمون','c-gold','👥','إضافة المعلمين']],
   cashier:[['finance','المالية','c-red','💰','السداد والمتأخرات']]
 };
@@ -450,7 +450,7 @@ function halaqaView(bid,hid){
 /* ===== عروض التبويبات ===== */
 const RV={};
 
-RV.branches=()=>((V.show||rk()==='branch')&&brOf(V.show||ME.branch_id))?showBranch(V.show||ME.branch_id):BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{const ss=ST.filter(s=>s.branch_id===b.id);return `<button class="tile c-green" onclick="${isFeat(b)?`openShow('${b.id}')`:`openBranch('${b.id}')`}"><span class="ic">🏫</span><span class="tt">${esc(b.name)}</span>
+RV.branches=()=>((V.show||rk()==='branch')&&brOf(V.show||ME.branch_id))?showBranch(V.show||ME.branch_id):BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{const ss=ST.filter(s=>s.branch_id===b.id);return `<button class="tile c-green" onclick="openShow('${b.id}')"><span class="ic">🏫</span><span class="tt">${esc(b.name)}</span>
   <span class="ds">الحلقات: ${HA.filter(h=>h.branch_id===b.id).length} — المعلمون: ${TE.filter(t=>t.branch_id===b.id).length}</span>
   <span class="ds">الطلاب: ${ss.length} (طلاب ${ss.filter(s=>s.gender==='boy').length} / طالبات ${ss.filter(s=>s.gender==='girl').length})</span>
   <span class="ds">الرسم الشهري: ${b.monthly_fee}</span></button>`;}).join('')}</div>`:'<div class="card note">لا توجد فروع بعد.</div>';
@@ -1056,7 +1056,70 @@ function addTeacher(){
   dbDo(db.from('itqan_teachers').insert({branch_id:scope(),full_name:n,phone:$('tPhone').value.trim()||null}),'تمت إضافة المعلم ✓');
 }
 
+/* ===== التقارير: شاملة، مالية في كل فرع، جودة ومتابعة الفروع ===== */
 RV.reports=()=>{
+  const tabs=[['','التقرير الشامل','c-dark'],['fin','المالية في كل فرع','c-red'],['quality','الجودة ومتابعة جميع الفروع','c-teal']];
+  const bar=`<div class="row" style="margin-bottom:12px">${tabs.map(([k,n])=>`<button class="b keepRO ${(V.rsub||'')===k?'m':'g'}" onclick="setV('rsub','${k}')">${n}</button>`).join('')}</div>`;
+  const body=V.rsub==='fin'?repFinance():V.rsub==='quality'?repQuality():repOverall();
+  return bar+body;
+};
+
+function repFinance(){
+  const y=V.year||new Date().getFullYear(), mk=V.month;
+  const rows=BR.map(b=>{
+    const ss=ST.filter(s=>s.branch_id===b.id);
+    const due=ss.filter(s=>!s.exempt);
+    const need=due.reduce((a,s)=>a+feeOf(s),0);
+    const ids=new Set(ss.map(s=>s.id));
+    const collM=PY.filter(p=>p.month===mk&&ids.has(p.student_id)).reduce((a,p)=>a+Number(p.amount||0),0);
+    const incY=Array.from({length:12},(_,i)=>incomeOf(b.id,mKey(y,i))).reduce((a,v)=>a+v,0);
+    const expY=Array.from({length:12},(_,i)=>expTotal(b.id,mKey(y,i))).reduce((a,v)=>a+v,0);
+    return {b,n:ss.length,need,collM,incY,expY,remY:incY-expY};
+  });
+  const T=rows.reduce((a,r)=>({n:a.n+r.n,need:a.need+r.need,collM:a.collM+r.collM,incY:a.incY+r.incY,expY:a.expY+r.expY,remY:a.remY+r.remY}),{n:0,need:0,collM:0,incY:0,expY:0,remY:0});
+  const cell=v=>`<span class="${v>=0?'pos':'neg'}">${fmtN(v)}</span>`;
+  return `<div class="card"><div class="row" style="justify-content:space-between">
+      <h3 style="margin:0">المالية في كل فرع</h3>
+      <div class="row"><label>الشهر: <input type="month" value="${mk}" onchange="setV('month',this.value)"></label>
+      <span class="note">سنة ${y}: الوارد والمصروفات السنوية</span></div></div></div>
+    <div class="tw"><table class="finT">
+      <tr><th>الفرع</th><th>الطلاب</th><th>المطلوب شهرياً</th><th>محصّل ${mk}</th><th>نسبة التحصيل</th><th>وارد ${y}</th><th>مصروفات ${y}</th><th>المتبقي ${y}</th></tr>
+      ${rows.map(r=>`<tr><td>${esc(r.b.name)}</td><td>${r.n}</td><td>${fmtN(r.need)}</td><td>${fmtN(r.collM)}</td>
+        <td>${r.need?Math.round(r.collM/r.need*100):0}%</td><td>${fmtN(r.incY)}</td><td>${fmtN(r.expY)}</td><td>${cell(r.remY)}</td></tr>`).join('')||'<tr><td colspan="8" class="note">لا توجد فروع</td></tr>'}
+      <tr class="tot"><td>المجموع</td><td>${T.n}</td><td>${fmtN(T.need)}</td><td>${fmtN(T.collM)}</td>
+        <td>${T.need?Math.round(T.collM/T.need*100):0}%</td><td>${fmtN(T.incY)}</td><td>${fmtN(T.expY)}</td><td>${cell(T.remY)}</td></tr>
+    </table></div>`;
+}
+
+function repQuality(){
+  const rows=BR.map(b=>{
+    const ss=ST.filter(s=>s.branch_id===b.id);
+    const hs=HA.filter(h=>h.branch_id===b.id);
+    const n=ss.length;
+    const pct=x=>n?Math.round(x/n*100):0;
+    const noHalaqa=ss.filter(s=>!s.halaqa_id).length;
+    const noGender=ss.filter(s=>!s.gender).length;
+    const qProg=ss.filter(s=>s.quran_progress&&String(s.quran_progress).trim()).length;
+    const rwProg=ss.filter(s=>s.rw_progress&&String(s.rw_progress).trim()).length;
+    const noTeacher=hs.filter(h=>!h.teacher_id).length;
+    const last=ss.map(s=>s.progress_updated_at).filter(Boolean).sort().pop();
+    const score=n?Math.round((pct(qProg)+pct(rwProg)+(100-pct(noHalaqa))+(100-pct(noGender)))/4):0;
+    return {b,n,noTeacher,noHalaqa,noGender,qPct:pct(qProg),rwPct:pct(rwProg),last,score};
+  });
+  const col=v=>v>=80?'#15803d':v>=50?'#b45309':'#b91c1c';
+  return `<div class="card"><h3>الجودة ومتابعة جميع الفروع</h3>
+    <p class="note">مؤشر الجودة يجمع: متابعة الحفظ، ومتابعة القراءة والكتابة، وتسكين كل طالب في حلقة، وتحديد جنس كل طالب. الهدف 80 فأكثر.</p></div>
+    <div class="tw"><table class="finT">
+      <tr><th>الفرع</th><th>الطلاب</th><th>حلقات بلا معلم</th><th>طلاب بلا حلقة</th><th>طلاب بلا جنس</th><th>متابعة الحفظ</th><th>متابعة القراءة</th><th>آخر متابعة</th><th>مؤشر الجودة</th></tr>
+      ${rows.map(r=>`<tr><td>${esc(r.b.name)}</td><td>${r.n}</td>
+        <td class="${r.noTeacher?'neg':'pos'}">${r.noTeacher}</td><td class="${r.noHalaqa?'neg':'pos'}">${r.noHalaqa}</td><td class="${r.noGender?'neg':'pos'}">${r.noGender}</td>
+        <td>${r.qPct}%</td><td>${r.rwPct}%</td><td>${r.last?String(r.last).slice(0,10):'—'}</td>
+        <td><b style="color:${col(r.score)};font-size:20px">${r.score}</b>
+          <div class="bars" style="min-width:90px"><i style="display:block;height:100%;width:${r.score}%;background:${col(r.score)}"></i></div></td></tr>`).join('')||'<tr><td colspan="9" class="note">لا توجد فروع</td></tr>'}
+    </table></div>`;
+}
+
+function repOverall(){
   const rows=BR.map(b=>{
     const ss=ST.filter(s=>s.branch_id===b.id);
     const paid=ss.filter(s=>PY.some(p=>p.student_id===s.id&&p.month===V.month)).length;
