@@ -134,7 +134,28 @@ tr:nth-child(even) td{background:#fdfaf2}
 .ovBox h3{margin:0 0 10px}
 .dl{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:14px}
 @media(max-width:560px){.dl{grid-template-columns:1fr}}
+body,button,input,select,textarea,table{font-family:'Tajawal',Tahoma,sans-serif!important}
+.showLogo{display:flex;justify-content:center;align-items:center;padding:18px 14px;margin:6px 0 18px;border-radius:22px;background:linear-gradient(135deg,#0b2f22,#14532d 55%,#0b2f22);box-shadow:0 16px 40px rgba(20,83,45,.35);overflow:hidden;position:relative}
+.showLogo img{width:min(760px,100%);height:auto;animation:logoSway 9s ease-in-out infinite;filter:drop-shadow(0 8px 18px rgba(0,0,0,.4))}
+.showLogo::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,215,120,.32) 50%,transparent 65%);transform:translateX(-120%);animation:shineSlow 7s ease-in-out infinite;pointer-events:none}
+@keyframes logoSway{0%,100%{transform:translateY(0) rotate(-.6deg)}50%{transform:translateY(-8px) rotate(.6deg)}}
+@keyframes shineSlow{0%{transform:translateX(-120%)}55%,100%{transform:translateX(120%)}}
+@keyframes btnShine{0%{transform:translateX(-120%)}60%,100%{transform:translateX(120%)}}
+.showTop{margin:6px 0 12px}
+.hGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.hBtn{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:24px 16px;border:none;border-radius:18px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#166534,#15803d 55%,#0f766e);box-shadow:0 10px 26px rgba(21,128,61,.35);transition:transform .25s,box-shadow .25s}
+.hBtn:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(21,128,61,.45)}
+.hBtn::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);animation:btnShine 4.5s ease-in-out infinite;pointer-events:none}
+.hName{font-size:20px;font-weight:800}
+.hTeacher{font-size:14px;opacity:.92}
+.hCount{font-size:12px;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px}
+.hHead{background:#fff;border-radius:16px;padding:16px 18px;border:1px solid #e5e7eb;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+.hHead h2{margin:0;font-size:24px;font-weight:800;flex:1}
+.sGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.sCard{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-weight:700}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="pattern"></div>
@@ -211,7 +232,7 @@ const teName=id=>TE.find(t=>t.id===id)?.full_name||'—';
 const msg=(t,ok)=>{$('msg').className=ok?'ok':'msg';$('msg').textContent=t};
 const isPaid=sid=>PY.some(p=>p.student_id===sid&&p.month===V.month);
 const setV=(k,v)=>{V[k]=v;paint()};
-const go=t=>{V.tab=t;paint()};
+const go=t=>{V.tab=t;V.show='';V.hl='';paint()};
 const openBranch=id=>{V.branch=id;V.fh='all';V.ft='all';V.tab='halaqat';paint()};
 const chBranch=v=>{V.branch=v;V.fh='all';V.ft='all';paint()};
 const noB=()=>'<div class="card note">أضف فرعاً أولاً من تبويب «إضافة فرع».</div>';
@@ -333,10 +354,39 @@ function rowsOf(list){
 }
 const grp=(title,list,extra='')=>`<div class="grp"><span>${title}</span>${extra}<span class="note">(${list.length} طالب)</span></div>${rowsOf(list)}`;
 
+const isFeat=b=>/الأول|الاول/.test(b.name||'')||BR[0]?.id===b.id;
+function openShow(bid){ V.show=bid; V.hl=''; paint(); }
+function leaveShow(){ V.show=''; V.hl=''; paint(); }
+function openHalaqa(hid){ V.hl=hid; paint(); }
+function logoHeader(b){
+  return `<div class="showLogo"><img src="itqan-branch1-logo.png" alt="${esc(b?.name||'')}" onerror="this.style.display='none'"></div>`;
+}
+function showBranch(bid){
+  const b=brOf(bid);
+  if(V.hl) return halaqaView(bid,V.hl);
+  const hs=HA.filter(h=>h.branch_id===bid);
+  return `${logoHeader(b)}
+  <div class="showTop"><button class="b m" onclick="leaveShow()">← كل الفروع</button></div>
+  <div class="hGrid">${hs.map(h=>{
+    const t=TE.find(x=>x.id===h.teacher_id);
+    const n=ST.filter(s=>s.halaqa_id===h.id).length;
+    return `<button class="hBtn" onclick="openHalaqa('${h.id}')"><span class="hName">${esc(h.name)}</span><span class="hTeacher">المشرف: ${esc(t?.full_name||'لم يُعيَّن')}</span><span class="hCount">${n} طالب</span></button>`;
+  }).join('')||'<p class="note">لا توجد حلقات بعد</p>'}</div>`;
+}
+function halaqaView(bid,hid){
+  const h=haOf(hid);
+  const t=TE.find(x=>x.id===h?.teacher_id);
+  const list=ST.filter(s=>s.halaqa_id===hid);
+  return `${logoHeader(brOf(bid))}
+  <div class="showTop"><button class="b m" onclick="V.hl='';paint()">← كل الحلقات</button></div>
+  <div class="hHead"><h2>${esc(h?.name||'')}</h2><span>المشرف: ${esc(t?.full_name||'لم يُعيَّن')}</span><span>عدد الطلاب: ${list.length}</span></div>
+  <div class="sGrid">${list.map(s=>`<div class="sCard">${sName(s)}<span class="note">${GN[s.gender]}</span></div>`).join('')||'<p class="note">لا يوجد طلاب في هذه الحلقة</p>'}</div>`;
+}
+
 /* ===== عروض التبويبات ===== */
 const RV={};
 
-RV.branches=()=>BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{const ss=ST.filter(s=>s.branch_id===b.id);return `<button class="tile c-green" onclick="openBranch('${b.id}')"><span class="ic">🏫</span><span class="tt">${esc(b.name)}</span>
+RV.branches=()=>(V.show&&brOf(V.show))?showBranch(V.show):BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{const ss=ST.filter(s=>s.branch_id===b.id);return `<button class="tile c-green" onclick="${isFeat(b)?`openShow('${b.id}')`:`openBranch('${b.id}')`}"><span class="ic">🏫</span><span class="tt">${esc(b.name)}</span>
   <span class="ds">الحلقات: ${HA.filter(h=>h.branch_id===b.id).length} — المعلمون: ${TE.filter(t=>t.branch_id===b.id).length}</span>
   <span class="ds">الطلاب: ${ss.length} (طلاب ${ss.filter(s=>s.gender==='boy').length} / طالبات ${ss.filter(s=>s.gender==='girl').length})</span>
   <span class="ds">الرسم الشهري: ${b.monthly_fee}</span></button>`;}).join('')}</div>`:'<div class="card note">لا توجد فروع بعد.</div>';
