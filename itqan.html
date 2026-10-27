@@ -128,6 +128,12 @@ tr:nth-child(even) td{background:#fdfaf2}
 62%{transform:translateY(0) rotateY(360deg) scale(1);opacity:1;filter:none}
 }
 @keyframes ihsanBeam{0%,60%{left:-60%}80%,100%{left:120%}}
+.lnk{color:#1d4ed8;text-decoration:underline;cursor:pointer;font-weight:700}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px}
+.ovBox{background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:18px;direction:rtl}
+.ovBox h3{margin:0 0 10px}
+.dl{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:14px}
+@media(max-width:560px){.dl{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -184,7 +190,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 
 const ROLE_LABEL={itqan_association_manager:'مدير الجمعية',itqan_branch_manager:'مدير الفرع',itqan_cashier:'أمين الصندوق'};
 const KIND={rw:'حلقة القراءة والكتابة',quran:'حلقة قرآن'};
-const GN=new Proxy({boy:'بنين',girl:'بنات'},{get:(t,k)=>t[k]||'—'});
+const GN=new Proxy({boy:'طالب',girl:'طالبة'},{get:(t,k)=>t[k]||'—'});
 const TABS={
   association:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إدارة فرع','c-blue','🛠️','بيانات الفروع وإضافة فرع'],['halaqat','الحلقات والطلاب','c-teal','📚','الحلقات حسب الفرز'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية ومتابعتها','c-red','💰','السداد والمتأخرات'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
   branch:[['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['halaqat','الحلقات','c-teal','📚','الحلقات والطلاب'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية','c-red','💰','السداد والمتأخرات'],['people','المعلمون','c-gold','👥','إضافة المعلمين']],
@@ -269,6 +275,7 @@ async function dbDo(p,ok){
   await loadAll();
   msg(ok||'تم ✓',true);
   paint();
+  if(V.stu) renderStu();
 }
 
 /* ===== الرسم ===== */
@@ -290,8 +297,8 @@ function statsHtml(){
   const ss=b?ST.filter(s=>s.branch_id===b):ST;
   const cards=[
     [rk()==='association'&&!b?BR.length:ss.length, rk()==='association'&&!b?'عدد الفروع':'إجمالي الطلاب'],
-    [ss.filter(s=>s.gender==='boy').length,'بنين'],
-    [ss.filter(s=>s.gender==='girl').length,'بنات'],
+    [ss.filter(s=>s.gender==='boy').length,'طلاب'],
+    [ss.filter(s=>s.gender==='girl').length,'طالبات'],
     [b?HA.filter(h=>h.branch_id===b).length:HA.length,'الحلقات'],
     [b?TE.filter(t=>t.branch_id===b).length:TE.length,'المعلمون'],
     [ss.filter(s=>isPaid(s.id)).length,'سدّد هذا الشهر']
@@ -308,7 +315,7 @@ function pickerHtml(){
     h+=`<div class="row" style="margin-top:8px">
       <label>الحلقة: <select onchange="setV('fh',this.value)"><option value="all">الكل</option>${hs.map(x=>`<option value="${x.id}" ${V.fh===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
       <label>المعلم: <select onchange="setV('ft',this.value)"><option value="all">الكل</option>${ts.map(t=>`<option value="${t.id}" ${V.ft===t.id?'selected':''}>${esc(t.full_name)}</option>`).join('')}</select></label>
-      <label>الجنس: <select onchange="setV('fg',this.value)"><option value="all">الكل</option><option value="boy" ${V.fg==='boy'?'selected':''}>بنين</option><option value="girl" ${V.fg==='girl'?'selected':''}>بنات</option></select></label>
+      <label>الجنس: <select onchange="setV('fg',this.value)"><option value="all">الكل</option><option value="boy" ${V.fg==='boy'?'selected':''}>طالب</option><option value="girl" ${V.fg==='girl'?'selected':''}>طالبة</option></select></label>
       ${V.tab==='halaqat'?`<label>التجميع: <select onchange="setV('group',this.value)">${[['halaqa','حسب الحلقة'],['teacher','حسب المعلم'],['gender','حسب الجنس']].map(([k,n])=>`<option value="${k}" ${V.group===k?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
       ${V.tab==='finance'?`<label>الشهر: <input type="month" value="${V.month}" onchange="setV('month',this.value)"></label>`:''}
     </div>`;
@@ -320,7 +327,7 @@ function rowsOf(list){
   if(!list.length) return '<p class="note">لا يوجد طلاب</p>';
   return `<div class="tw"><table><tr><th>الطالب</th><th>الجنس</th><th>ولي الأمر</th><th>الهاتف</th><th>الحلقة (تغيير)</th><th>المعلم</th></tr>${list.map(s=>{
     const hh=haOf(s.halaqa_id);
-    return `<tr><td>${esc(s.full_name)}</td><td>${GN[s.gender]}</td><td>${esc(s.guardian_name||'')}</td><td>${esc(s.phone||'')}</td>
+    return `<tr><td>${sName(s)}</td><td>${GN[s.gender]}</td><td>${esc(s.guardian_name||'')}</td><td>${esc(s.phone||'')}</td>
     <td><select onchange="moveStudent('${s.id}',this.value)"><option value="">—</option>${HA.filter(x=>x.branch_id===s.branch_id).map(x=>`<option value="${x.id}" ${x.id===s.halaqa_id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></td>
     <td>${esc(teName(hh?.teacher_id))}</td></tr>`;}).join('')}</table></div>`;
 }
@@ -331,7 +338,7 @@ const RV={};
 
 RV.branches=()=>BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{const ss=ST.filter(s=>s.branch_id===b.id);return `<button class="tile c-green" onclick="openBranch('${b.id}')"><span class="ic">🏫</span><span class="tt">${esc(b.name)}</span>
   <span class="ds">الحلقات: ${HA.filter(h=>h.branch_id===b.id).length} — المعلمون: ${TE.filter(t=>t.branch_id===b.id).length}</span>
-  <span class="ds">الطلاب: ${ss.length} (بنين ${ss.filter(s=>s.gender==='boy').length} / بنات ${ss.filter(s=>s.gender==='girl').length})</span>
+  <span class="ds">الطلاب: ${ss.length} (طلاب ${ss.filter(s=>s.gender==='boy').length} / طالبات ${ss.filter(s=>s.gender==='girl').length})</span>
   <span class="ds">الرسم الشهري: ${b.monthly_fee}</span></button>`;}).join('')}</div>`:'<div class="card note">لا توجد فروع بعد.</div>';
 
 const bUrl=p=>p?db.storage.from('itqan-media').getPublicUrl(p).data.publicUrl:'';
@@ -415,15 +422,46 @@ function manageTools(){
 }
 
 let XL_LOADED=false;
+const normAr=s=>String(s??'').replace(/[ً-ْـ​-‏ ]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim();
+const key=s=>normAr(s).replace(/ /g,'');
+const isNameHdr=c=>{const t=normAr(c);return t==='اسم طالب'||t==='الاسم'||t==='اسم الطالب'||(t.includes('اسم')&&t.includes('طالب'))};
+
+const genderOf=g=>/بنت|بنات|انثى|أنثى/.test(g||'')?'girl':(/ولد|بنين|ذكر/.test(g||'')?'boy':null);
+
 function loadXlsx(){
-  return new Promise((res,rej)=>{
-    if(window.XLSX) return res();
+  if(window.XLSX) return Promise.resolve();
+  const urls=['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'];
+  const tryLoad=i=>new Promise((res,rej)=>{
     const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-    s.onload=()=>res();
-    s.onerror=()=>rej(new Error('تعذّر تحميل مكتبة Excel'));
+    s.src=urls[i];
+    s.onload=()=>window.XLSX?res():rej(new Error('المكتبة لم تُهيّأ'));
+    s.onerror=()=>rej(new Error('فشل التحميل من '+urls[i]));
     document.head.appendChild(s);
   });
+  return tryLoad(0).catch(()=>tryLoad(1)).catch(e=>{throw new Error('تعذّر تحميل مكتبة Excel. تحقق من الاتصال بالإنترنت ثم أعد المحاولة ('+e.message+')')});
+}
+
+/* كل ورقة = حلقة. العنوان في الصفوف فوق الترويسة: «حلقة <الاسم> أ. <المعلم>» */
+function parseSheet(ws,sheetName){
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',blankrows:false});
+  const hIdx=rows.findIndex(r=>r.some(isNameHdr));
+  if(hIdx<0) return null;
+  const nameCol=rows[hIdx].findIndex(isNameHdr);
+  const genCol=rows[hIdx].findIndex(c=>normAr(c)==='الجنس');
+  const amtCol=rows[hIdx].findIndex(c=>normAr(c).includes('مبلغ'));
+  let halaqa=sheetName.trim(), teacher='';
+  for(let i=0;i<hIdx;i++){
+    const raw=rows[i].filter(c=>String(c).trim()!=='').map(c=>String(c).replace(/[\u0640\u200B-\u200F]/g,'')).join(' ').replace(/\s+/g,' ').trim();
+    const m=raw.match(/^حلق[ةه]\s+(.+?)\s+[أإاآ](?=[\s.])[\s.]*(.*)$/);
+    if(m){ halaqa=m[1].trim(); teacher=m[2].trim(); break; }
+  }
+  const students=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const name=String(rows[i][nameCol]??'').replace(/\s+/g,' ').trim();
+    if(!name||/مجموع|الإجمالي|الاجمالي/.test(name)) continue;
+    students.push({name,g:genCol>=0?String(rows[i][genCol]??'').trim():'',amt:amtCol>=0?rows[i][amtCol]:''});
+  }
+  return {halaqa,teacher,students};
 }
 
 async function importExcel(){
@@ -431,37 +469,88 @@ async function importExcel(){
   if(!bid) return msg('اختر الفرع');
   if(!f) return msg('اختر ملف Excel أولاً');
   try{
+    msg('جارٍ قراءة الملف…',true);
     await loadXlsx();
     const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
-    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
-    const pick=(r,keys)=>{for(const k of keys){const v=r[k];if(v!==undefined&&String(v).trim()!=='') return String(v).trim()}return ''};
-    const hs=HA.filter(h=>h.branch_id===bid);
-    const out=[]; let noName=0, noHalaqa=0;
-    for(const r of rows){
-      const name=pick(r,['الاسم','الاسم الرباعي','اسم الطالب']);
-      if(!name){noName++;continue}
-      const g=pick(r,['الجنس']);
-      const hn=pick(r,['الحلقة','اسم الحلقة']);
-      const hid=hn?(hs.find(h=>h.name===hn)?.id||null):null;
-      if(hn&&!hid) noHalaqa++;
-      const bd=pick(r,['تاريخ الميلاد']);
-      out.push({
-        branch_id:bid, full_name:name,
-        gender:/بنات|انثى|أنثى/.test(g)?'girl':(/بنين|ولد|ذكر/.test(g)?'boy':null),
-        guardian_name:pick(r,['ولي الأمر','اسم ولي الأمر'])||null,
-        phone:pick(r,['الهاتف'])||null,
-        address:pick(r,['العنوان'])||null,
-        birth_date:/^\d{4}-\d{2}-\d{2}$/.test(bd)?bd:null,
-        halaqa_id:hid
-      });
+    const parsed=wb.SheetNames.map(n=>parseSheet(wb.Sheets[n],n)).filter(Boolean);
+    if(!parsed.length) return msg('لم أجد عموداً بعنوان «اسم طالب» في أي ورقة من الملف');
+
+    /* 1) المعلمون: يُنشأ الناقص */
+    const tKeys=new Map();
+    TE.filter(t=>t.branch_id===bid).forEach(t=>tKeys.set(key(t.full_name),t.id));
+    const newT=[];
+    parsed.forEach(p=>{const k=key(p.teacher); if(k&&!tKeys.has(k)){tKeys.set(k,null); newT.push({branch_id:bid,full_name:p.teacher});}});
+    if(newT.length){
+      const {data,error}=await db.from('itqan_teachers').insert(newT).select();
+      if(error) return msg('تعذّر إنشاء المعلمين: '+error.message);
+      data.forEach(t=>tKeys.set(key(t.full_name),t.id));
     }
-    if(!out.length) return msg('لم أجد طلاباً في الملف. تأكد من أن عمود الاسم عنوانه «الاسم».');
+
+    /* 2) الحلقات: تُطابَق بالاسم، ويُنشأ الناقص */
+    const hKeys=new Map();
+    HA.filter(h=>h.branch_id===bid).forEach(h=>hKeys.set(key(h.name),h.id));
+    const hMatch=name=>{
+      const k=key(name);
+      if(hKeys.has(k)) return hKeys.get(k);
+      for(const [hk,id] of hKeys) if(k.length>=6&&hk.length>=6&&(hk.includes(k)||k.includes(hk))) return id;
+      return null;
+    };
+    const newH=[], seenH=new Set();
+    parsed.forEach(p=>{
+      const k=key(p.halaqa);
+      if(hMatch(p.halaqa)||seenH.has(k)) return;
+      seenH.add(k);
+      newH.push({branch_id:bid,name:p.halaqa,kind:'quran',teacher_id:tKeys.get(key(p.teacher))||null});
+    });
+    if(newH.length){
+      const {data,error}=await db.from('itqan_halaqat').insert(newH).select();
+      if(error) return msg('تعذّر إنشاء الحلقات: '+error.message);
+      data.forEach(h=>hKeys.set(key(h.name),h.id));
+    }
+
+    /* 3) الطلاب: بالاسم فقط، ويُتخطّى المكرر داخل الفرع */
+    const existingMap=new Map(ST.filter(s=>s.branch_id===bid).map(s=>[key(s.full_name),s]));
+    const existing=new Set(existingMap.keys());
+    const fills=[];
+    const branchFee=Number(brOf(bid)?.monthly_fee||0);
+    const out=[], report=[]; let dup=0;
+    parsed.forEach(p=>{
+      const hid=hMatch(p.halaqa); let c=0;
+      p.students.forEach(st=>{
+        const n=st.name, k=key(n);
+        const amt=(st.amt===''||st.amt==null)?NaN:Number(st.amt);
+        const gen=genderOf(st.g);
+        if(existing.has(k)){
+          dup++;
+          const prev=existingMap.get(k);
+          if(prev){
+            const patch={};
+            if(!prev.gender&&gen) patch.gender=gen;
+            if(amt===0&&!prev.exempt) patch.exempt=true;
+            else if(!isNaN(amt)&&amt>0&&amt!==branchFee&&prev.monthly_fee==null&&!prev.exempt) patch.monthly_fee=amt;
+            if(Object.keys(patch).length) fills.push({id:prev.id,patch});
+          }
+          return;
+        }
+        existing.add(k);
+        out.push({branch_id:bid,full_name:n,gender:gen,halaqa_id:hid,exempt:amt===0,monthly_fee:(!isNaN(amt)&&amt>0&&amt!==branchFee)?amt:null});
+        c++;
+      });
+      report.push(`${p.halaqa}: ${c}`);
+    });
+    const exN=out.filter(x=>x.exempt).length, redN=out.filter(x=>x.monthly_fee!=null).length;
+    let filled=0;
+    for(const f of fills){ const {error}=await db.from('itqan_students').update(f.patch).eq('id',f.id); if(!error) filled++; }
+    if(!out.length){
+      if(filled){ await loadAll(); paint(); return msg(`حُدّث ${filled} طالباً موجوداً ✓`,true); }
+      return msg('لا يوجد طلاب جدد في الملف'+(dup?` (تكرّر ${dup} اسماً موجوداً)`:''));
+    }
     for(let i=0;i<out.length;i+=200){
       const {error}=await db.from('itqan_students').insert(out.slice(i,i+200));
-      if(error) return msg('تعذّر الاستيراد عند الصف '+(i+1)+': '+error.message);
+      if(error) return msg('تعذّر الاستيراد عند الطالب '+(i+1)+': '+error.message);
     }
     await loadAll();
-    msg(`تم استيراد ${out.length} طالباً ✓`+(noName?` — تخطّي ${noName} صفاً بلا اسم`:'')+(noHalaqa?` — لم تُطابق ${noHalaqa} حلقة`:''),true);
+    msg(`تم استيراد ${out.length} طالباً في ${parsed.length} حلقة ✓`+(newH.length?` — أُنشئت ${newH.length} حلقة`:'')+(newT.length?` وأُنشئ ${newT.length} معلماً`:'')+(dup?` — تُخطّي ${dup} مكرراً`:'')+` — معفون: ${exN}، مخفّض: ${redN}`+(filled?` — حُدّث ${filled} موجوداً`:'')+' — راجع الجنس من «استكمال بيانات الطلاب»',true);
     paint();
   }catch(e){ msg('تعذّر قراءة الملف: '+e.message); }
 }
@@ -517,7 +606,7 @@ RV.halaqat=()=>{
     const ids0=hs.filter(x=>!x.teacher_id).map(x=>x.id);
     h+=grp('بدون معلم',ss.filter(s=>ids0.includes(s.halaqa_id)));
   } else {
-    h+=grp('بنين',ss.filter(s=>s.gender==='boy'))+grp('بنات',ss.filter(s=>s.gender==='girl'));
+    h+=grp('طلاب',ss.filter(s=>s.gender==='boy'))+grp('طالبات',ss.filter(s=>s.gender==='girl'));
   }
   return h;
 };
@@ -536,7 +625,7 @@ RV.register=()=>{
   return `<div class="card"><h3>استمارة طالب جديد</h3>
   <div class="row">
     <input id="rName" placeholder="الاسم الرباعي للطالب">
-    <select id="rGender"><option value="boy">بنين</option><option value="girl">بنات</option></select>
+    <select id="rGender"><option value="boy">طالب</option><option value="girl">طالبة</option></select>
     <input id="rBirth" type="date" title="تاريخ الميلاد">
     <input id="rGuard" placeholder="اسم ولي الأمر">
     <input id="rPhone" placeholder="هاتف ولي الأمر">
@@ -580,7 +669,7 @@ RV.complete=()=>{
   + (list.length?`<div class="tw"><table><tr><th>الطالب</th><th>الجنس *</th><th>الحلقة</th><th>ولي الأمر</th><th>الهاتف</th><th>العنوان</th><th></th></tr>
   ${list.map(s=>`<tr>
     <td>${esc(s.full_name)}</td>
-    <td><select id="cg_${s.id}"><option value="">—</option><option value="boy" ${s.gender==='boy'?'selected':''}>بنين</option><option value="girl" ${s.gender==='girl'?'selected':''}>بنات</option></select></td>
+    <td><select id="cg_${s.id}"><option value="">—</option><option value="boy" ${s.gender==='boy'?'selected':''}>طالب</option><option value="girl" ${s.gender==='girl'?'selected':''}>طالبة</option></select></td>
     <td><select id="ch_${s.id}"><option value="">— بدون حلقة —</option>${hs.map(x=>`<option value="${x.id}" ${x.id===s.halaqa_id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></td>
     <td><input id="cu_${s.id}" value="${esc(s.guardian_name||'')}"></td>
     <td><input id="cp_${s.id}" value="${esc(s.phone||'')}"></td>
@@ -641,7 +730,7 @@ RV.progress=()=>{
   if(!list.length) return '<div class="card note">لا يوجد طلاب بهذا الفرز.</div>';
   return `<div class="tw"><table><tr><th>الطالب</th><th>الحلقة</th><th>المعلم</th><th>الحفظ (القرآن)</th><th>القراءة والكتابة</th><th></th></tr>
   ${list.map(s=>{const hh=haOf(s.halaqa_id);return `<tr>
-    <td>${esc(s.full_name)}<div class="note">${GN[s.gender]}</div></td>
+    <td>${sName(s)}<div class="note">${GN[s.gender]}</div></td>
     <td>${esc(hh?.name||'—')}</td>
     <td>${esc(teName(hh?.teacher_id))}</td>
     <td><input id="q_${s.id}" value="${esc(s.quran_progress||'')}"></td>
@@ -657,29 +746,102 @@ function saveProgress(id){
   }).eq('id',id),'تم حفظ المتابعة ✓');
 }
 
+const feeOf=s=>s.exempt?0:(s.monthly_fee!=null?Number(s.monthly_fee):Number(brOf(s.branch_id)?.monthly_fee||0));
+const feeStatus=s=>s.exempt?'معفى':((s.monthly_fee!=null&&Number(s.monthly_fee)!==Number(brOf(s.branch_id)?.monthly_fee))?'مخفّض':'كامل');
+const sName=s=>`<span class="lnk" onclick="openStu('${s.id}')">${esc(s.full_name)}</span>`;
+
+/* ===== ملف الطالب ===== */
+function openStu(id){ V.stu=id; renderStu(); }
+function closeStu(){ V.stu=''; const o=$('stuOv'); if(o) o.remove(); }
+function renderStu(){
+  const s=ST.find(x=>x.id===V.stu);
+  if(!s){ closeStu(); return; }
+  const canEdit=ME.role!=='itqan_cashier';
+  const hh=haOf(s.halaqa_id);
+  const bfee=brOf(s.branch_id)?.monthly_fee;
+  let o=$('stuOv');
+  if(!o){
+    o=document.createElement('div'); o.id='stuOv'; o.className='ov';
+    o.onclick=e=>{ if(e.target===o) closeStu(); };
+    document.body.appendChild(o);
+  }
+  o.innerHTML=`<div class="ovBox">
+    <div class="row" style="justify-content:space-between"><h3>${esc(s.full_name)}</h3><button class="b m" onclick="closeStu()">إغلاق ✕</button></div>
+    <div class="dl">
+      <div>الجنس: <b>${GN[s.gender]}</b></div>
+      <div>الفرع: <b>${esc(brOf(s.branch_id)?.name||'—')}</b></div>
+      <div>الحلقة: <b>${esc(hh?.name||'—')}</b></div>
+      <div>المعلم: <b>${esc(teName(hh?.teacher_id))}</b></div>
+      <div>ولي الأمر: <b>${esc(s.guardian_name||'—')}</b></div>
+      <div>الهاتف: <b>${esc(s.phone||'—')}</b></div>
+      <div>العنوان: <b>${esc(s.address||'—')}</b></div>
+      <div>تاريخ الميلاد: <b>${esc(s.birth_date||'—')}</b></div>
+      <div>رسوم القبول: <b>${s.admission_paid?'مسدّدة':'لم تُسدّد'}</b></div>
+      <div>الحفظ: <b>${esc(s.quran_progress||'—')}</b></div>
+      <div>القراءة والكتابة: <b>${esc(s.rw_progress||'—')}</b></div>
+    </div>
+    <h3 style="margin-top:14px">الرسوم الشهرية</h3>
+    <div class="dl">
+      <div>الرسم الأصلي للفرع: <b>${bfee??'—'}</b></div>
+      <div>المطلوب شهرياً: <b>${feeOf(s)}</b></div>
+      <div>الحالة: <b>${feeStatus(s)}</b></div>
+      <div>سداد ${esc(V.month)}: <b>${isPaid(s.id)?'سدّد':'لم يسدّد'}</b></div>
+    </div>
+    ${canEdit?`<div style="margin-top:12px;border-top:1px solid #ddd;padding-top:10px">
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fxEx" ${s.exempt?'checked':''} style="width:auto"> معفى من السداد</label>
+      <div class="row" style="margin-top:8px">
+        <label>المبلغ الشهري الخاص (فارغ = الرسم الأصلي): <input id="fxAmt" type="number" min="0" value="${s.monthly_fee??''}"></label>
+        <input id="fxNote" placeholder="ملاحظة (مثال: حسم لظروف الأسرة)" value="${esc(s.fee_note||'')}">
+      </div>
+      <div style="margin-top:10px"><button class="b g" onclick="saveFee('${s.id}')">حفظ الرسوم</button></div>
+    </div>`
+    :(s.fee_note?`<p class="note">ملاحظة: ${esc(s.fee_note)}</p>`:'')}
+  </div>`;
+}
+
+function saveFee(id){
+  const ex=$('fxEx').checked, amt=$('fxAmt').value.trim(), note=$('fxNote').value.trim();
+  if(amt!==''&&(isNaN(Number(amt))||Number(amt)<0)) return msg('المبلغ غير صحيح');
+  dbDo(db.from('itqan_students').update({
+    exempt:ex, monthly_fee:amt===''?null:Number(amt), fee_note:note||null
+  }).eq('id',id),'تم حفظ الرسوم ✓');
+}
+
+/* ===== المالية ===== */
 RV.finance=()=>{
   const b=brOf(scope()); if(!b) return noB();
   const canEdit=ME.role!=='itqan_cashier';
   const list=filtered(b.id);
-  const paidN=list.filter(s=>isPaid(s.id)).length;
+  const due=list.filter(s=>!s.exempt);
+  const paidN=due.filter(s=>isPaid(s.id)).length;
+  const need=due.reduce((a,s)=>a+feeOf(s),0);
   const coll=PY.filter(p=>p.month===V.month&&list.some(s=>s.id===p.student_id)).reduce((a,p)=>a+Number(p.amount||0),0);
-  return `<div class="card"><div class="row"><b>الرسم الشهري: ${b.monthly_fee}</b><b>رسوم القبول: ${b.admission_fee}</b>
-    <span class="ok">سدّد هذا الشهر: ${paidN} من ${list.length}</span><span>المحصّل: ${coll}</span></div></div>
-  <div class="tw"><table><tr><th>الطالب</th><th>الجنس</th><th>الحلقة</th><th>رسوم القبول</th><th>سداد الشهر ${V.month}</th></tr>
+  const exL=list.filter(s=>s.exempt||(s.monthly_fee!=null&&Number(s.monthly_fee)!==Number(b.monthly_fee)));
+  return `<div class="card"><div class="row"><b>الرسم الأصلي: ${b.monthly_fee}</b><b>رسوم القبول: ${b.admission_fee}</b>
+    <span class="ok">سدّد هذا الشهر: ${paidN} من ${due.length}</span><span>المطلوب: ${need}</span><span>المحصّل: ${coll}</span>
+    <button class="b g" onclick="setV('fx',!V.fx)">${V.fx?'إخفاء القائمة':'قائمة المعفيين والمخفّضين'} (${exL.length})</button></div></div>
+  ${V.fx?`<div class="card"><h3>المعفيون والمخفّضون</h3><div class="tw"><table><tr><th>الطالب</th><th>الحلقة</th><th>المطلوب شهرياً</th><th>الحالة</th><th>ملاحظة</th></tr>
+    ${exL.map(s=>`<tr><td>${sName(s)}</td><td>${esc(haOf(s.halaqa_id)?.name||'—')}</td><td>${feeOf(s)}</td><td>${feeStatus(s)}</td><td>${esc(s.fee_note||'')}</td></tr>`).join('')||'<tr><td colspan="5" class="note">لا يوجد معفيون ولا مخفّضون</td></tr>'}</table></div></div>`:''}
+  <div class="tw"><table><tr><th>الطالب</th><th>الجنس</th><th>الحلقة</th><th>المطلوب</th><th>رسوم القبول</th><th>سداد الشهر ${V.month}</th></tr>
   ${list.map(s=>{const pd=isPaid(s.id);return `<tr>
-    <td>${esc(s.full_name)}</td><td>${GN[s.gender]}</td><td>${esc(haOf(s.halaqa_id)?.name||'—')}</td>
+    <td>${sName(s)}</td><td>${GN[s.gender]}</td><td>${esc(haOf(s.halaqa_id)?.name||'—')}</td>
+    <td>${s.exempt?'<span class="ok">معفى</span>':`${feeOf(s)}${s.monthly_fee!=null?` <span class="note">(${feeStatus(s)})</span>`:''}`}</td>
     <td>${canEdit?`<button class="b ${s.admission_paid?'g':'m'}" onclick="toggleAdm('${s.id}',${!s.admission_paid})">${s.admission_paid?'مسدّد ✓':'لم يسدّد'}</button>`:(s.admission_paid?'<span class="ok">مسدّد</span>':'<span class="bad">لم يسدّد</span>')}</td>
-    <td><span class="${pd?'ok':'bad'}">${pd?'سدّد':'لم يسدّد'}</span> <button class="b ${pd?'m':'g'}" onclick="togglePay('${s.id}')">${pd?'إلغاء السداد':'تسجيل السداد'}</button></td></tr>`;}).join('')
-    ||'<tr><td colspan="5" class="note">لا يوجد طلاب</td></tr>'}</table></div>`;
+    <td>${s.exempt?'<span class="note">لا يلزم</span>':`<span class="${pd?'ok':'bad'}">${pd?'سدّد':'لم يسدّد'}</span> <button class="b ${pd?'m':'g'}" onclick="togglePay('${s.id}')">${pd?'إلغاء السداد':'تسجيل السداد'}</button>`}</td></tr>`;}).join('')
+    ||'<tr><td colspan="6" class="note">لا يوجد طلاب</td></tr>'}</table></div>`;
 };
 
 function toggleAdm(sid,val){dbDo(db.from('itqan_students').update({admission_paid:val}).eq('id',sid))}
 
 function togglePay(sid){
+  const s=ST.find(x=>x.id===sid);
   const p=PY.find(x=>x.student_id===sid&&x.month===V.month);
   if(p) return dbDo(db.from('itqan_payments').delete().eq('id',p.id),'تم إلغاء السداد');
-  const b=brOf(scope());
-  dbDo(db.from('itqan_payments').insert({student_id:sid,month:V.month,amount:b.monthly_fee}),'تم تسجيل السداد ✓');
+  if(!s) return;
+  if(s.exempt) return msg('الطالب معفى من السداد');
+  const amt=feeOf(s);
+  if(amt<=0) return msg('لا يوجد مبلغ مطلوب لهذا الطالب');
+  dbDo(db.from('itqan_payments').insert({student_id:sid,month:V.month,amount:amt}),'تم تسجيل السداد ✓');
 }
 
 RV.people=()=>{
@@ -718,7 +880,7 @@ RV.reports=()=>{
   }).join('');
   return `<div class="card"><div class="row"><h3 style="margin:0">تقرير شامل</h3>
     <label>الشهر: <input type="month" value="${V.month}" onchange="setV('month',this.value)"></label></div></div>
-    <div class="tw"><table><tr><th>الفرع</th><th>الحلقات</th><th>المعلمون</th><th>الطلاب</th><th>بنين</th><th>بنات</th><th>قبول مسدد</th><th>سدّد الشهر</th><th>لم يسدّد</th><th>المحصّل</th></tr>
+    <div class="tw"><table><tr><th>الفرع</th><th>الحلقات</th><th>المعلمون</th><th>الطلاب</th><th>طلاب</th><th>طالبات</th><th>قبول مسدد</th><th>سدّد الشهر</th><th>لم يسدّد</th><th>المحصّل</th></tr>
     ${rows||'<tr><td colspan="10" class="note">لا توجد فروع بعد</td></tr>'}</table></div>`;
 };
 
