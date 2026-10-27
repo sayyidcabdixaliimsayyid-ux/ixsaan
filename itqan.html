@@ -196,6 +196,18 @@ select,input,button,textarea{font-size:16px}
 .hTeacher{font-size:16px}
 .note{font-size:15px}
 .grp{font-size:18px}
+body.ro #content button:not(.tile):not(.hBtn):not(.b.m):not(.keepRO):not(.lnk){pointer-events:none;opacity:.45}
+body.ro #content input:not([type=month]):not([type=checkbox]),
+body.ro #content select[onchange^="moveStudent"],
+body.ro #content select[onchange^="setTeacher"],
+body.ro #content select[id^="cg_"],body.ro #content select[id^="ch_"],
+body.ro #content select[id="rGender"],body.ro #content select[id="rHalaqa"]{pointer-events:none;opacity:.7}
+body.ro-assoc .wr{display:none!important}
+body.ro #stuOv .b.g{display:none!important}
+body.ro #stuOv input,body.ro #stuOv select{pointer-events:none;opacity:.7}
+.roNote{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-weight:700}
+body.ro-view #content button:not(.tile):not(.hBtn):not(.b.m):not(.keepRO):not(.lnk){pointer-events:none;opacity:.45}
+body.ro-view #content input:not([type=month]){pointer-events:none;opacity:.7}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -257,11 +269,11 @@ const KIND={rw:'حلقة القراءة والكتابة',quran:'حلقة قرآ
 const GN=new Proxy({boy:'طالب',girl:'طالبة'},{get:(t,k)=>t[k]||'—'});
 const TABS={
   association:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','الفروع وحلقاتها وطلابها'],['addbranch','إدارة فرع','c-blue','🛠️','بيانات الفروع وإضافة فرع'],['halaqat','الحلقات والطلاب','c-teal','📚','الحلقات حسب الفرز'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية ومتابعتها','c-red','💰','السداد والمتأخرات'],['people','بيانات المدراء والمعلمين','c-gold','👥','المدراء والمعلمون'],['reports','تقارير شاملة','c-dark','📊','ملخص كل الفروع']],
-  branch:[['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['halaqat','الحلقات','c-teal','📚','الحلقات والطلاب'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية','c-red','💰','السداد والمتأخرات'],['people','المعلمون','c-gold','👥','إضافة المعلمين']],
+  branch:[['branches','مدارس الاتقان لتحفيظ القرآن','c-green','🏫','حلقات الفرع وطلابها'],['register','تسجيل وقبول','c-orange','📝','استمارة طالب جديد'],['complete','استكمال بيانات الطلاب','c-blue','✏️','الجنس والحلقة والبيانات الناقصة'],['halaqat','الحلقات','c-teal','📚','الحلقات والطلاب'],['progress','المتابعة','c-purple','📈','الحفظ والقراءة والكتابة'],['finance','المالية','c-red','💰','السداد والمتأخرات'],['people','المعلمون','c-gold','👥','إضافة المعلمين']],
   cashier:[['finance','المالية','c-red','💰','السداد والمتأخرات']]
 };
 const BRANCH_TABS=['halaqat','register','complete','progress','finance','people'];
-const DEFAULT_TAB={association:'branches',branch:'halaqat',cashier:'finance'};
+const DEFAULT_TAB={association:'branches',branch:'branches',cashier:'finance'};
 
 let ME=null, BR=[], TE=[], HA=[], ST=[], PY=[], PEOPLE=[], MG=[], EX=[];
 const monthNow=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
@@ -297,7 +309,7 @@ async function login(){
 async function enter(){
   const {data:{user}}=await db.auth.getUser();
   if(!user) return;
-  const {data:prof,error}=await db.from('profiles').select('full_name,role,branch_id,all_panels').eq('id',user.id).single();
+  const {data:prof,error}=await db.from('profiles').select('full_name,role,branch_id,all_panels,itqan_editor').eq('id',user.id).single();
   if(prof&&prof.all_panels) prof.role='itqan_association_manager';
   if(error||!prof||!ROLE_LABEL[prof.role]){
     $('gateMsg').textContent='هذا الحساب غير مرتبط بمدارس الإتقان';
@@ -355,7 +367,13 @@ function paint(){
   $('pick').innerHTML=needs?pickerHtml():'';
   $('pick').classList.toggle('hidden',!needs);
   const info=needs&&scope()?branchInfo():'';
-  $('content').innerHTML=info+(RV[V.tab]?RV[V.tab]():'');
+  const viewAll=!!ME.all_panels&&!ME.itqan_editor;
+  const roInt=ME.role==='itqan_association_manager'&&!ME.itqan_editor;
+  document.body.classList.toggle('ro-view',viewAll);
+  document.body.classList.toggle('ro-assoc',roInt);
+  document.body.classList.toggle('ro',viewAll||(roInt&&['halaqat','register','complete','progress','finance'].includes(V.tab)));
+  const roMsg=viewAll?'عرض فقط: هذا الحساب للاطلاع دون تعديل':'عرض فقط: الإدارة الداخلية للفرع تُدار من حساب مدير الفرع';
+  $('content').innerHTML=(document.body.classList.contains('ro')?`<div class="roNote">${roMsg}</div>`:'')+info+(RV[V.tab]?RV[V.tab]():'');
 }
 
 function statsHtml(){
@@ -411,7 +429,7 @@ function showBranch(bid){
   if(V.hl) return halaqaView(bid,V.hl);
   const hs=HA.filter(h=>h.branch_id===bid);
   return `${logoHeader(b)}
-  <div class="showTop"><button class="b m" onclick="leaveShow()">← كل الفروع</button></div>
+  ${rk()==='branch'?'':`<div class="showTop"><button class="b m" onclick="leaveShow()">← كل الفروع</button></div>`}
   <div class="hGrid">${hs.map(h=>{
     const t=TE.find(x=>x.id===h.teacher_id);
     const n=ST.filter(s=>s.halaqa_id===h.id).length;
@@ -431,7 +449,7 @@ function halaqaView(bid,hid){
 /* ===== عروض التبويبات ===== */
 const RV={};
 
-RV.branches=()=>(V.show&&brOf(V.show))?showBranch(V.show):BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{const ss=ST.filter(s=>s.branch_id===b.id);return `<button class="tile c-green" onclick="${isFeat(b)?`openShow('${b.id}')`:`openBranch('${b.id}')`}"><span class="ic">🏫</span><span class="tt">${esc(b.name)}</span>
+RV.branches=()=>((V.show||rk()==='branch')&&brOf(V.show||ME.branch_id))?showBranch(V.show||ME.branch_id):BR.length?`<div class="menu" style="padding:0">${BR.map(b=>{const ss=ST.filter(s=>s.branch_id===b.id);return `<button class="tile c-green" onclick="${isFeat(b)?`openShow('${b.id}')`:`openBranch('${b.id}')`}"><span class="ic">🏫</span><span class="tt">${esc(b.name)}</span>
   <span class="ds">الحلقات: ${HA.filter(h=>h.branch_id===b.id).length} — المعلمون: ${TE.filter(t=>t.branch_id===b.id).length}</span>
   <span class="ds">الطلاب: ${ss.length} (طلاب ${ss.filter(s=>s.gender==='boy').length} / طالبات ${ss.filter(s=>s.gender==='girl').length})</span>
   <span class="ds">الرسم الشهري: ${b.monthly_fee}</span></button>`;}).join('')}</div>`:'<div class="card note">لا توجد فروع بعد.</div>';
@@ -494,7 +512,7 @@ async function saveBranch(id){
 function manageTools(){
   const branchOpts=BR.map(x=>`<option value="${x.id}" ${x.id===scope()?'selected':''}>${esc(x.name)}</option>`).join('');
   const btns=`<div class="row" style="margin:6px 0 12px">
-    <button class="b" onclick="setV('sub','excel')">📥 توريد ملف EXCEL</button>
+    <button class="b wr" onclick="setV('sub','excel')">📥 توريد ملف EXCEL</button>
     <button class="b g" onclick="setV('sub','manager')">👤 إضافة مدير</button>
     ${V.sub?`<button class="b m" onclick="setV('sub','')">إخفاء</button>`:''}</div>`;
   let form='';
@@ -759,7 +777,7 @@ RV.complete=()=>{
   const missing=ST.filter(s=>s.branch_id===b&&(!s.gender||!s.halaqa_id));
   const list=V.showAll?ST.filter(s=>s.branch_id===b):missing;
   return `<div class="card"><div class="row"><b>طلاب ناقصو البيانات (الجنس أو الحلقة): ${missing.length}</b>
-    <button class="b ${V.showAll?'m':'g'}" onclick="setV('showAll',!V.showAll)">${V.showAll?'عرض الناقصين فقط':'عرض جميع الطلاب'}</button></div>
+    <button class="b keepRO ${V.showAll?'m':'g'}" onclick="setV('showAll',!V.showAll)">${V.showAll?'عرض الناقصين فقط':'عرض جميع الطلاب'}</button></div>
     <p class="note">حدّد الجنس والحلقة وأكمل بقية البيانات، ثم اضغط «حفظ» في سطر الطالب.</p></div>`
   + (list.length?`<div class="tw"><table><tr><th>الطالب</th><th>الجنس *</th><th>الحلقة</th><th>ولي الأمر</th><th>الهاتف</th><th>العنوان</th><th></th></tr>
   ${list.map(s=>`<tr>
@@ -789,7 +807,7 @@ function saveComplete(id){
 const accOpts=sel=>`<option value="">— بدون حساب —</option>`+PEOPLE.filter(p=>p.role==='itqan_branch_manager').map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.full_name)} — ${esc(brOf(p.branch_id)?.name||'')}</option>`).join('');
 
 function managersList(){
-  const rows=MG.map(m=>`<tr><td>${m.photo_path?`<img src="${bUrl(m.photo_path)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:'👤'}</td><td>${esc(m.full_name)}</td><td>${esc(brOf(m.branch_id)?.name||'')}</td><td>${esc(m.phone||'')}</td><td><button class="b g" onclick="setV('mgr','${m.id}')">فتح الملف</button></td></tr>`).join('');
+  const rows=MG.map(m=>`<tr><td>${m.photo_path?`<img src="${bUrl(m.photo_path)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:'👤'}</td><td>${esc(m.full_name)}</td><td>${esc(brOf(m.branch_id)?.name||'')}</td><td>${esc(m.phone||'')}</td><td><button class="b g keepRO" onclick="setV('mgr','${m.id}')">فتح الملف</button></td></tr>`).join('');
   return `<div class="card"><h3>ملفات مدراء الفروع</h3>${rows?`<div class="tw"><table><tr><th>الصورة</th><th>الاسم</th><th>الفرع</th><th>الهاتف</th><th></th></tr>${rows}</table></div>`:'<p class="note">لا يوجد مدراء مسجّلون بعد، أضفهم من «إدارة فرع».</p>'}</div>`;
 }
 
@@ -934,7 +952,7 @@ function finReport(b,canEdit){
       <tr class="tot"><td>المجموع</td><td>${fmtN(T.inc)}</td><td>${fmtN(T.exp)}</td><td class="${T.rem>=0?'pos':'neg'}">${fmtN(T.rem)}</td><td></td></tr>
     </table></div>
     <p class="note">الوارد = الرسوم المسدّدة في كل شهر. الرسم الأصلي للطالب 8000 ما لم يُعدَّل فردياً.</p>
-    <div><button class="b ${V.expOpen?'m':'g'}" onclick="setV('expOpen',!V.expOpen)">${V.expOpen?'إخفاء جدول المصروفات':'إدخال المصروفات الشهرية'}</button></div>
+    <div><button class="b keepRO ${V.expOpen?'m':'g'}" onclick="setV('expOpen',!V.expOpen)">${V.expOpen?'إخفاء جدول المصروفات':'إدخال المصروفات الشهرية'}</button></div>
     ${V.expOpen?expEntry(b,y,canEdit):''}
   </div>`;
 }
@@ -987,7 +1005,7 @@ RV.finance=()=>{
   const exL=list.filter(s=>s.exempt||(s.monthly_fee!=null&&Number(s.monthly_fee)!==Number(b.monthly_fee)));
   return finReport(b,canEdit)+`<div class="card"><div class="row"><b>الرسم الأصلي: ${b.monthly_fee}</b><b>رسوم القبول: ${b.admission_fee}</b>
     <span class="ok">سدّد هذا الشهر: ${paidN} من ${due.length}</span><span>المطلوب: ${need}</span><span>المحصّل: ${coll}</span>
-    <button class="b g" onclick="setV('fx',!V.fx)">${V.fx?'إخفاء القائمة':'قائمة المعفيين والمخفّضين'} (${exL.length})</button></div></div>
+    <button class="b g keepRO" onclick="setV('fx',!V.fx)">${V.fx?'إخفاء القائمة':'قائمة المعفيين والمخفّضين'} (${exL.length})</button></div></div>
   ${V.fx?`<div class="card"><h3>المعفيون والمخفّضون</h3><div class="tw"><table><tr><th>الطالب</th><th>الحلقة</th><th>المطلوب شهرياً</th><th>الحالة</th><th>ملاحظة</th></tr>
     ${exL.map(s=>`<tr><td>${sName(s)}</td><td>${esc(haOf(s.halaqa_id)?.name||'—')}</td><td>${feeOf(s)}</td><td>${feeStatus(s)}</td><td>${esc(s.fee_note||'')}</td></tr>`).join('')||'<tr><td colspan="5" class="note">لا يوجد معفيون ولا مخفّضون</td></tr>'}</table></div></div>`:''}
   <div class="tw"><table><tr><th>الطالب</th><th>الجنس</th><th>الحلقة</th><th>المطلوب</th><th>رسوم القبول</th><th>سداد الشهر ${V.month}</th></tr>
@@ -1023,7 +1041,7 @@ RV.people=()=>{
     </table></div></div>`:'';
   if(!b) return mgList+staff+noB();
   return mgList+staff+`<div class="card"><h3>معلمو ${esc(brOf(b)?.name||'')}</h3>
-    <div class="row"><input id="tName" placeholder="اسم المعلم"><input id="tPhone" placeholder="الهاتف"><button class="b g" onclick="addTeacher()">إضافة معلم</button></div>
+    <div class="row wr"><input id="tName" placeholder="اسم المعلم"><input id="tPhone" placeholder="الهاتف"><button class="b g" onclick="addTeacher()">إضافة معلم</button></div>
     <div class="tw" style="margin-top:10px"><table><tr><th>المعلم</th><th>الهاتف</th><th>الحلقات</th><th>عدد الطلاب</th></tr>
     ${TE.filter(t=>t.branch_id===b).map(t=>{const hh=HA.filter(x=>x.teacher_id===t.id);const n=ST.filter(s=>hh.some(x=>x.id===s.halaqa_id)).length;
       return `<tr><td>${esc(t.full_name)}</td><td>${esc(t.phone||'')}</td><td>${hh.map(x=>esc(x.name)).join('، ')||'—'}</td><td>${n}</td></tr>`;}).join('')
