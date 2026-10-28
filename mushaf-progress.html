@@ -46,6 +46,13 @@ button.b.sm{padding:7px 11px;font-size:14px}
 button.b.full{width:100%}
 input,select{font:inherit;padding:9px 11px;border:2px solid #e8d3a2;border-radius:11px;background:#fff;color:var(--ink)}
 input.full{width:100%;margin:5px 0}
+.rangeBox{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0;background:#f7f0dd;border-radius:12px;padding:10px}
+.rangeBox .lb{font-weight:900;color:var(--dark)}
+.rangeBox select{min-width:150px}
+.rangeBox input{width:90px}
+.pgBar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:8px 0}
+.pgBar strong{color:var(--dark);font-size:17px}
+.surahHead{display:block;text-align:center;font-family:Tajawal,sans-serif;font-weight:900;color:var(--dark);background:#f7f0dd;border-radius:10px;padding:4px;margin:8px 0;font-size:16px}
 .gate{max-width:400px;margin:60px auto;background:#fff;border-radius:20px;padding:24px;border:1px solid #e8d3a2;box-shadow:0 10px 26px rgba(0,0,0,.08)}
 .gate h2{text-align:center;color:var(--green);margin:4px 0 14px;font-weight:900}
 
@@ -167,6 +174,15 @@ td,th{border-bottom:1px solid #efe6cc;padding:8px 6px;text-align:right}
           <button class="b gray sm" id="backBtn">← العودة إلى قائمة التسميع</button>
           <div id="activeHead" class="note"></div>
         </div>
+        <div class="rangeBox">
+          <span class="lb">من:</span>
+          <select id="fSur"></select>
+          <input id="fAy" type="number" min="1" placeholder="رقم الآية">
+          <span class="lb">إلى:</span>
+          <select id="tSur"></select>
+          <input id="tAy" type="number" min="1" placeholder="رقم الآية">
+          <button class="b g sm" id="applyRange">تطبيق المدى</button>
+        </div>
         <div id="sel" class="note"></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">
           <select id="surah" style="flex:1;min-width:180px"></select>
@@ -174,7 +190,17 @@ td,th{border-bottom:1px solid #efe6cc;padding:8px 6px;text-align:right}
           <button class="b g sm" id="goPage">اذهب</button>
         </div>
         <p class="note">اضغط على آخر آية سمّعها الطالب في هذا الدرس. يبدأ الدرس تلقائياً من الآية التالية لآخر ما حفظه.</p>
+        <div class="pgBar">
+          <button class="b gray sm" id="prevPg">‹ الصفحة السابقة</button>
+          <strong id="pgLabel"></strong>
+          <button class="b gray sm" id="nextPg">الصفحة التالية ›</button>
+        </div>
         <div id="text" class="ayahs"></div>
+        <div class="pgBar">
+          <button class="b gray sm" id="prevPg2">‹ الصفحة السابقة</button>
+          <span class="note">صفحة واحدة في كل شاشة، والتحديد يبقى عند التنقل</span>
+          <button class="b gray sm" id="nextPg2">الصفحة التالية ›</button>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <button class="b g" id="save">حفظ التسميع</button>
           <button class="b gold" id="preview">معاينة الصفحة</button>
@@ -220,6 +246,14 @@ let db = null;
 
 const A = QDATA.ayahs, SU = QDATA.suras, Q = QDATA.quarters;
 const starts = []; { let acc = 0; SU.forEach(([n, c]) => { starts.push(acc); acc += c; }); }
+/* ترتيب القراءة: السور من الناس إلى البقرة، والآيات داخل كل سورة من الأول إلى الآخر */
+const SEQ = [];
+for (let sur = 114; sur >= 1; sur--) for (let a = 1; a <= SU[sur - 1][1]; a++) SEQ.push(starts[sur - 1] + a - 1);
+const POS = new Array(A.length);
+SEQ.forEach((g, p) => { POS[g] = p; });
+/* عدد الصفحات المتبقية من الموضع p حتى نهاية الترتيب (صفحات متميزة) */
+const PAGES_LEFT = new Array(SEQ.length + 1).fill(0);
+{ const seen = new Set(); for (let p = SEQ.length - 1; p >= 0; p--) { seen.add(A[SEQ[p]][2]); PAGES_LEFT[p] = seen.size; } }
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const AR = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
@@ -234,6 +268,7 @@ const AYAH_PER_PAGE = A.length / 604, AYAH_PER_QUARTER = A.length / 240;
 const amount = n => `${n} آية ≈ ${(n / AYAH_PER_PAGE).toFixed(1)} صفحة ≈ ${(n / AYAH_PER_QUARTER).toFixed(2)} ربع`;
 
 let ME = null, TEACHER = null, BRANCH = null, HALAQAT = [], STUDENTS = [], DAILY = [], SUBS = [];
+let curPage = 1, pageOwner = null;
 let halId = null, view = 'att', recMode = 'list', activeSid = null, selStart = null, selEnd = null, previewPage = 1;
 let cur = { day: dayStr(0) };
 
@@ -312,14 +347,26 @@ function renderProfile() {
 /* ---------- الحسابات ---------- */
 const stuList = () => STUDENTS.filter(s => s.halaqa_id === halId);
 const rowsOf = sid => DAILY.filter(r => r.student_id === sid);
+/* الموضع = آخر آية وصل إليها الطالب بترتيب القراءة (-1 = لم يبدأ) */
 function lastAyah(sid, excludeDay) {
   const st = STUDENTS.find(x => x.id === sid);
   let last = st?.quran_base_ayah ?? -1;
-  rowsOf(sid).forEach(r => { if (r.ayah_to != null && r.day !== excludeDay) last = Math.max(last, r.ayah_to); });
+  rowsOf(sid).forEach(r => { if (r.ayah_to != null && r.day !== excludeDay) last = Math.max(last, POS[r.ayah_to]); });
   return last;
 }
-const pagesLeft = last => last < 0 ? 604 : 604 - A[last][2];
-const pct = last => ((last + 1) / A.length * 100);
+function posText(sid) {
+  const last = lastAyah(sid, cur.day);
+  if (last < 0) return 'لم يبدأ بعد';
+  if (last >= SEQ.length - 1) return 'أتمّ القرآن';
+  return `وصل إلى ${label(SEQ[last])} — بقي ${PAGES_LEFT[last + 1]} صفحة (${((last + 1) / A.length * 100).toFixed(1)}%)`;
+}
+/* نص الاختيار: من (الأسبق في القراءة) إلى (الأحدث) */
+function selLabel() {
+  if (selStart == null) return '';
+  if (selEnd == null) return `البداية: ${label(selStart)} — اضغط على آخر آية`;
+  const [a, b] = POS[selStart] <= POS[selEnd] ? [selStart, selEnd] : [selEnd, selStart];
+  return `من ${label(a)} — إلى ${label(b)} — ${amount(POS[b] - POS[a] + 1)}`;
+}
 function recOf(sid, day) { return DAILY.find(r => r.student_id === sid && r.day === day) || null; }
 function subOf(hid, day) { return SUBS.find(x => x.halaqa_id === hid && x.day === day) || null; }
 
@@ -355,8 +402,8 @@ function renderRec() {
     const r = recOf(s.id, cur.day);
     const isDone = r?.ayah_to != null;
     const st = isDone
-      ? `تم التسميع: ${label(r.ayah_from)} ← ${label(r.ayah_to)} — ${amount(r.ayah_to - r.ayah_from + 1)}`
-      : 'لم يُسمّع بعد';
+      ? `تم التسميع: من ${label(r.ayah_from)} إلى ${label(r.ayah_to)} — ${amount(POS[r.ayah_to] - POS[r.ayah_from] + 1)}`
+      : `لم يُسمّع اليوم — الموضع: ${posText(s.id)}`;
     return `<div class="rw ${isDone ? 'done' : ''}">
       <span class="nm"><span class="lnk" onclick="pick('${s.id}')">${esc(s.full_name)}</span></span>
       <span class="st">${st}</span></div>`;
@@ -376,34 +423,81 @@ function renderActive() {
   $('activeHead').innerHTML = `<b style="color:#123d24;font-size:18px">التسميع: ${esc(s.full_name)}</b> — يوم ${cur.day}${r?.attendance ? ' — ' + ATT[r.attendance] : ''}`;
   if (selStart == null && selEnd == null) renderSelFromDefault(s.id);
   const from = selStart, to = selEnd;
-  if (to == null) $('sel').textContent = from == null ? '' : `البداية: ${label(from)} — اضغط على آخر آية`;
-  else $('sel').textContent = `من: ${label(Math.min(from, to))} — إلى: ${label(Math.max(from, to))} — ${amount(Math.max(from, to) - Math.min(from, to) + 1)}`;
+  $('sel').textContent = selLabel();
+  syncRangeInputs();
+  if (pageOwner !== s.id + '|' + cur.day) {
+    pageOwner = s.id + '|' + cur.day;
+    const g = selStart ?? SEQ[Math.min(last + 1, SEQ.length - 1)];
+    curPage = A[g][2];
+  }
   renderText(last);
   renderHist(s.id);
 }
+
+/* يعكس الحقول «من» و«إلى» على الاختيار الحالي */
+function syncRangeInputs() {
+  if (selStart != null) { $('fSur').value = A[selStart][0]; $('fAy').value = A[selStart][1]; }
+  if (selEnd != null) { $('tSur').value = A[selEnd][0]; $('tAy').value = A[selEnd][1]; }
+  else { $('tAy').value = ''; }
+}
+/* يحوّل (السورة، رقم الآية) إلى فهرس الآية الكلي مع التحقق */
+function ayahIndex(sur, ay) {
+  const n = SU[sur - 1][1];
+  if (!(ay >= 1 && ay <= n)) return null;
+  return starts[sur - 1] + ay - 1;
+}
+$('applyRange').onclick = () => {
+  if (activeSid == null) return;
+  const f = ayahIndex(+$('fSur').value, +$('fAy').value);
+  if (f == null) return msg('رقم آية «من» غير صحيح لهذه السورة.');
+  let t = null;
+  if ($('tAy').value !== '') {
+    t = ayahIndex(+$('tSur').value, +$('tAy').value);
+    if (t == null) return msg('رقم آية «إلى» غير صحيح لهذه السورة.');
+    if (POS[t] < POS[f]) return msg('آية «إلى» يجب أن تأتي بعد آية «من» في ترتيب القراءة (من الناس نحو البقرة).');
+  }
+  selStart = f; selEnd = t;
+  msg('تم تحديد المدى ✓', true);
+  renderActive();
+};
 
 function renderSelFromDefault(sid) {
   const rec = recOf(sid, cur.day);
   if (rec && rec.ayah_from != null) { selStart = rec.ayah_from; selEnd = rec.ayah_to; return; }
   const base = lastAyah(sid, cur.day);
-  selStart = base + 1 <= A.length - 1 ? base + 1 : null; selEnd = null;
+  selStart = base + 1 < SEQ.length ? SEQ[base + 1] : null; selEnd = null;
 }
 
+/* النص يُعرض صفحة واحدة في كل مرة */
+function pageBounds(p) {
+  const lo = A.findIndex(x => x[2] === p);
+  let hi = lo;
+  while (hi + 1 < A.length && A[hi + 1][2] === p) hi++;
+  return [lo, hi];
+}
+function setPage(p) {
+  curPage = Math.min(604, Math.max(1, p));
+  const [lo] = pageBounds(curPage);
+  $('surah').value = A[lo][0];
+  renderText(lastAyah(activeSid, cur.day));
+}
 function renderText(last) {
-  const s = +$('surah').value;
-  const base = starts[s - 1];
+  const [lo, hi] = pageBounds(curPage);
   const rs = selStart, re = selEnd;
-  const lo = rs == null ? null : Math.min(rs, re ?? rs), hi = rs == null ? null : Math.max(rs, re ?? rs);
+  const selLo = rs == null ? null : Math.min(POS[rs], POS[re ?? rs]), selHi = rs == null ? null : Math.max(POS[rs], POS[re ?? rs]);
   let html = '';
-  for (let i = 0; i < SU[s - 1][1]; i++) {
-    const g = base + i, cls = ['ay'];
-    if (re != null && g >= lo && g <= hi) cls.push('in');
-    if (re != null && g === hi) cls.push('end');
+  for (let g = lo; g <= hi; g++) {
+    const cls = ['ay'];
+    if (re != null && POS[g] >= selLo && POS[g] <= selHi) cls.push('in');
+    if (re != null && POS[g] === selHi) cls.push('end');
     if (g === rs && re == null) cls.push('start');
-    if (rs == null && g === last + 1) cls.push('cur');
+    if (rs == null && last + 1 < SEQ.length && g === SEQ[last + 1]) cls.push('cur');
+    if (A[g][1] === 1) html += `<span class="surahHead">سورة ${SU[A[g][0]-1][0]}</span>`;
     html += `<span class="${cls.join(' ')}" data-g="${g}">${A[g][3]}<span class="num">﴿${AR(A[g][1])}﴾</span></span> `;
   }
   $('text').innerHTML = html;
+  const label = `صفحة ${curPage} — ${SU[A[lo][0]-1][0]}`;
+  $('pgLabel').textContent = label;
 }
 
 function renderHist(sid) {
@@ -411,8 +505,8 @@ function renderHist(sid) {
   if (!rows.length) { $('hist').textContent = 'لا يوجد سجل لهذا الطالب بعد.'; return; }
   $('hist').innerHTML = `<div class="tw"><table><tr><th>اليوم</th><th>الحضور</th><th>ما سُمِّع</th><th>الكمية</th></tr>` +
     rows.map(r => `<tr><td>${r.day}</td><td>${r.attendance ? ATT[r.attendance] : '—'}</td>
-      <td>${r.ayah_from != null ? label(r.ayah_from) + ' ← ' + label(r.ayah_to) : '—'}</td>
-      <td>${r.ayah_from != null ? amount(r.ayah_to - r.ayah_from + 1) : '—'}</td></tr>`).join('') + '</table></div>';
+      <td>${r.ayah_from != null ? `من ${label(r.ayah_from)} إلى ${label(r.ayah_to)}` : '—'}</td>
+      <td>${r.ayah_from != null ? amount(POS[r.ayah_to] - POS[r.ayah_from] + 1) : '—'}</td></tr>`).join('') + '</table></div>';
 }
 
 /* ---------- الأفعال ---------- */
@@ -441,7 +535,8 @@ async function reloadDaily() {
 async function refreshStudent(sid) {
   const last = lastAyah(sid, null);
   const st = STUDENTS.find(x => x.id === sid);
-  const patch = { quran_last_ayah: last >= 0 ? last : null, quran_last_page: last >= 0 ? A[last][2] : null, quran_last_quarter: last >= 0 ? qAt(last) : null };
+  const ok = last >= 0;
+  const patch = { quran_last_ayah: ok ? last : null, quran_last_page: ok ? A[SEQ[last]][2] : null, quran_last_quarter: null };
   const { error } = await db.from('itqan_students').update(patch).eq('id', sid);
   if (error) msg('تعذّر تحديث موضع الطالب: ' + error.message);
   Object.assign(st, patch);
@@ -449,7 +544,7 @@ async function refreshStudent(sid) {
 $('save').onclick = async () => {
   const s = STUDENTS.find(x => x.id === activeSid); if (!s) return;
   if (selEnd == null) return msg('اضغط أولاً على آخر آية سمّعها الطالب.');
-  const a = Math.min(selStart, selEnd), b = Math.max(selStart, selEnd);
+  const [a, b] = POS[selStart] <= POS[selEnd] ? [selStart, selEnd] : [selEnd, selStart];
   const row = {
     branch_id: s.branch_id, halaqa_id: s.halaqa_id, student_id: s.id, day: cur.day, recorded_by: ME.id,
     ayah_from: a, ayah_to: b, page_from: A[a][2], page_to: A[b][2]
@@ -487,18 +582,20 @@ $('submitBtn').onclick = async () => {
 
 $('halSel').onchange = () => { activeSid = null; recMode = 'list'; selStart = null; selEnd = null; paint(); };
 $('day').onchange = () => { cur.day = $('day').value || dayStr(0); activeSid = null; recMode = 'list'; selStart = null; selEnd = null; paint(); };
-$('surah').onchange = () => renderText(lastAyah(activeSid, cur.day));
+$('surah').onchange = () => setPage(A[starts[+$('surah').value - 1]][2]);
+$('prevPg').onclick = $('prevPg2').onclick = () => setPage(curPage - 1);
+$('nextPg').onclick = $('nextPg2').onclick = () => setPage(curPage + 1);
 $('goPage').onclick = () => {
   const p = +$('pg').value, g = A.findIndex(x => x[2] === p);
   if (g < 0) return alert('رقم صفحة غير صحيح (1 إلى 604).');
-  $('surah').value = A[g][0]; renderText(lastAyah(activeSid, cur.day));
-  document.querySelector(`[data-g="${g}"]`)?.scrollIntoView({ block: 'center' });
+  setPage(p);
+  window.scrollTo({ top: $('text').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
 };
 $('text').addEventListener('click', e => {
   const el = e.target.closest('[data-g]'); if (!el || activeSid == null) return;
   const g = +el.dataset.g;
-  if (selStart == null) selStart = lastAyah(activeSid, cur.day) + 1;
-  if (g < selStart) { selEnd = selStart; selStart = g; } else selEnd = g;
+  if (selStart == null) selStart = SEQ[Math.min(lastAyah(activeSid, cur.day) + 1, SEQ.length - 1)];
+  selEnd = g;
   renderActive();
 });
 
@@ -510,8 +607,8 @@ function showPage(p) {
 }
 $('pImg').onerror = () => { $('pImg').style.display = 'none'; $('pMsg').textContent = 'لم تُعثر على صورة الصفحة. ضع مجلد hafs بجانب هذه الصفحة، بأسماء الملفات 1.png حتى 604.png.'; };
 $('preview').onclick = () => {
-  const g = selEnd ?? selStart ?? (lastAyah(activeSid, cur.day) + 1);
-  showPage(A[Math.min(g, A.length - 1)][2]);
+  const g = selEnd ?? selStart ?? SEQ[Math.min(lastAyah(activeSid, cur.day) + 1, SEQ.length - 1)];
+  showPage(A[g][2]);
   $('modal').classList.add('on');
 };
 $('pPrev').onclick = () => showPage(previewPage - 1);
@@ -526,6 +623,8 @@ SU.forEach(([name, count], i) => {
   const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${name} (${count})`; $('surah').appendChild(o);
 });
 $('surah').value = 1;
+$('fSur').innerHTML = $('surah').innerHTML;
+$('tSur').innerHTML = $('surah').innerHTML;
 
 loadLib(LIBS.slice(), ok => {
   if (!ok) { $('gMsg').textContent = 'تعذّر تحميل مكتبة الاتصال. تأكد من الإنترنت ثم أعد فتح الصفحة.'; return; }

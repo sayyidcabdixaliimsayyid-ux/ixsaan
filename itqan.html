@@ -897,8 +897,9 @@ async function loadDaily(){
     const recs=mine.filter(r=>r.ayah_from!=null).sort((x,y)=>y.day.localeCompare(x.day));
     const last10=recs.slice(0,10);
     const rate=last10.length?last10.reduce((a,r)=>a+(r.ayah_to-r.ayah_from+1),0)/last10.length:0;
+    // الموضع = عدد الآيات المسموعة بترتيب القراءة (من الناس نحو البقرة)
     const doneAyahs=s.quran_last_ayah!=null?s.quran_last_ayah+1:(s.quran_base_ayah!=null?s.quran_base_ayah+1:0);
-    const left=Math.max(0,TOTAL_AYAHS-doneAyahs);
+    const left=TOTAL_AYAHS-doneAyahs;
     const days=rate>0?Math.ceil(left/rate):null;
     let finish=null; if(days!=null){const d=new Date();d.setDate(d.getDate()+days);finish=d.toLocaleDateString('ar',{day:'numeric',month:'long',year:'numeric'})}
     return [s.id,{s,t,recToday:t&&t.ayah_from!=null?t:null,rate,left,days,finish,doneAyahs,pages:s.quran_last_page}];
