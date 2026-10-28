@@ -320,6 +320,7 @@ async function enter(){
   const {data:{user}}=await db.auth.getUser();
   if(!user) return;
   const {data:prof,error}=await db.from('profiles').select('full_name,role,branch_id,all_panels,itqan_editor').eq('id',user.id).single();
+  if(prof&&prof.role==='itqan_teacher'){location.href='mushaf-progress.html';return}
   if(prof&&prof.all_panels) prof.role='itqan_association_manager';
   if(error||!prof||!ROLE_LABEL[prof.role]){
     $('gateMsg').textContent='هذا الحساب غير مرتبط بمدارس الإتقان';
