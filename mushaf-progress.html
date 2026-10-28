@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>حلقة المعلم — الحضور والتسميع</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f2ea;font-family:Tajawal,Tahoma,sans-serif;color:#1d2b22;font-size:16px}
+header{background:#0b4a33;color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+header b{font-size:18px}
+header .who{font-size:14px;opacity:.9}
+.wrap{display:grid;grid-template-columns:360px 1fr;gap:14px;padding:14px;max-width:1280px;margin:auto}
+@media(max-width:860px){.wrap{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid #e0dccf;border-radius:14px;padding:14px;margin-bottom:12px}
+h3{margin:0 0 8px;color:#0b4a33;font-size:17px}
+.note{font-size:13px;color:#6b6b5a;line-height:1.7}
+.btn{font:inherit;font-weight:700;padding:10px 12px;border:0;border-radius:9px;background:#0b4a33;color:#fff;cursor:pointer;margin:3px 0}
+.btn.full{width:100%}
+.btn.alt{background:#c9a04a;color:#2a1d0a}
+.btn.gray{background:#e9e4d6;color:#1d2b22}
+.btn.red{background:#9b2c2c}
+.btn.sm{padding:6px 9px;font-size:13px;margin:0}
+input,select{font:inherit;padding:9px;border:1px solid #d6d0bf;border-radius:8px;background:#fff}
+input.full{width:100%;margin:4px 0}
+.stu{border:1px solid #e6e1d2;border-radius:10px;padding:10px;margin-bottom:8px}
+.stu.on{border-color:#0b4a33;box-shadow:0 0 0 2px #d8efe2 inset}
+.stu .nm{font-weight:800;font-size:16px}
+.att{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.att button{font:inherit;font-size:13px;padding:5px 8px;border-radius:7px;border:1px solid #cfc8b3;background:#faf8f2;cursor:pointer}
+.att button.p{background:#0b4a33;color:#fff;border-color:#0b4a33}
+.att button.a{background:#9b2c2c;color:#fff;border-color:#9b2c2c}
+.att button.l{background:#c9a04a;color:#2a1d0a;border-color:#c9a04a}
+.att button.e{background:#4a6fa5;color:#fff;border-color:#4a6fa5}
+.bar{height:10px;background:#e6e1d2;border-radius:8px;overflow:hidden;margin:4px 0}
+.bar i{display:block;height:100%;background:#0b4a33}
+.ayahs{font-family:Amiri,serif;font-size:27px;line-height:2.2;text-align:justify;direction:rtl}
+.ay{cursor:pointer;display:inline-block;padding:2px 4px;border-radius:6px;user-select:none}
+.ay:hover{background:#f1ecdc}
+.ay.in{background:#d8efe2}
+.ay.start{box-shadow:inset 0 -3px 0 #0b4a33}
+.ay.end{background:#c9a04a;color:#fff}
+.ay.cur{outline:2px dashed #0b4a33}
+.num{font-family:Tajawal,sans-serif;font-size:14px;color:#8a7a52;margin:0 2px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{border-bottom:1px solid #eee;padding:6px 4px;text-align:right}
+.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:12px;z-index:9}
+.modal.on{display:flex}
+.box{background:#fff;border-radius:14px;padding:12px;max-width:900px;width:100%;max-height:96vh;overflow:auto;text-align:center}
+.box img{max-width:100%;height:auto;border-radius:8px;display:block;margin:8px auto}
+.gate{max-width:380px;margin:60px auto;background:#fff;border-radius:14px;padding:20px;border:1px solid #e0dccf}
+.hide{display:none!important}
+#msg{font-size:14px;margin:6px 0;color:#9b2c2c}
+#msg.ok{color:#0b4a33}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <h3>دخول المعلم</h3>
+  <input class="full" id="gEmail" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
+  <input class="full" id="gPass" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+  <button class="btn full" id="gBtn">دخول</button>
+  <div id="gMsg" class="note" style="color:#9b2c2c"></div>
+</div>
+
+<div id="app" class="hide">
+  <header>
+    <div><b>حلقتي</b> <span class="who" id="who"></span></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="halSel"></select>
+      <input type="date" id="day">
+      <button class="btn sm gray" id="outBtn">خروج</button>
+    </div>
+  </header>
+  <div id="msg"></div>
+
+  <div class="wrap">
+    <aside>
+      <div class="card">
+        <h3>الطلاب <span class="note" id="cnt"></span></h3>
+        <div id="roster"></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="card" id="activeCard">
+        <div id="activeHead" class="note">اختر طالباً واضغط «سمّع» لبدء التسميع.</div>
+        <div id="sel" class="note" style="margin-top:6px"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+          <select id="surah" style="flex:1;min-width:180px"></select>
+          <input id="pg" type="number" min="1" max="604" placeholder="رقم الصفحة" style="width:120px">
+          <button class="btn sm" id="goPage">اذهب</button>
+        </div>
+        <p class="note">اضغط على آخر آية سمّعها الطالب في هذا الدرس. يبدأ الدرس تلقائياً من الآية التالية لآخر ما حفظه.</p>
+        <div id="text" class="ayahs"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn" id="save">حفظ التسميع</button>
+          <button class="btn alt" id="preview">معاينة الصفحة</button>
+          <button class="btn gray" id="clear">إلغاء التحديد</button>
+          <button class="btn red" id="undo">مسح تسميع اليوم</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>آخر 3 أيام للطالب المحدد</h3>
+        <div id="hist" class="note">—</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <button class="btn gray sm" id="pPrev">‹ السابقة</button>
+      <strong id="pTitle"></strong>
+      <button class="btn gray sm" id="pNext">التالية ›</button>
+    </div>
+    <img id="pImg" alt="صفحة من المصحف">
+    <div id="pMsg" class="note"></div>
+    <button class="btn" id="pClose">إغلاق</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="quran-data.js"></script>
+<script>
+const db = supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co', 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');
+const A = QDATA.ayahs, SU = QDATA.suras, Q = QDATA.quarters;
+const starts = []; { let acc = 0; SU.forEach(([n, c]) => { starts.push(acc); acc += c; }); }
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const AR = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+const ATT = { present:'حاضر', absent:'غائب', late:'متأخر', excused:'بعذر' };
+const ATT_CLS = { present:'p', absent:'a', late:'l', excused:'e' };
+const label = g => `${SU[A[g][0]-1][0]} ${AR(A[g][1])}`;
+const dayStr = off => { const d = new Date(); d.setDate(d.getDate() + off); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+const qAt = g => Q.filter(x => x <= g).length;   // number of quarter-starts at or before ayah g
+const AYAH_PER_PAGE = A.length / 604, AYAH_PER_QUARTER = A.length / 240;   // متوسط تقريبي
+const amount = n => `${n} آية ≈ ${(n / AYAH_PER_PAGE).toFixed(1)} صفحة ≈ ${(n / AYAH_PER_QUARTER).toFixed(2)} ربع`;
+
+let ME = null, TEACHER = null, HALAQAT = [], STUDENTS = [], DAILY = [];
+let halId = null, activeSid = null, selStart = null, selEnd = null, previewPage = 1;
+let cur = { day: dayStr(0) };
+
+/* ---------- الدخول ---------- */
+$('gBtn').onclick = async () => {
+  const { error } = await db.auth.signInWithPassword({ email: $('gEmail').value.trim(), password: $('gPass').value });
+  if (error) { $('gMsg').textContent = 'البريد أو كلمة المرور غير صحيحة'; return; }
+  enter();
+};
+$('outBtn').onclick = async () => { await db.auth.signOut(); location.reload(); };
+
+async function enter() {
+  try {
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) return;
+    const { data: prof } = await db.from('profiles').select('full_name,role').eq('id', user.id).maybeSingle();
+    if (!prof || prof.role !== 'itqan_teacher') { $('gMsg').textContent = 'هذا الحساب ليس حساب معلم في مدارس الإتقان'; await db.auth.signOut(); return; }
+    const { data: t } = await db.from('itqan_teachers').select('*').eq('user_id', user.id).maybeSingle();
+    if (!t) { $('gMsg').textContent = 'لم يُربط حسابك بسجل المعلم بعد. راجع الإدارة.'; await db.auth.signOut(); return; }
+    ME = { id: user.id, name: prof.full_name }; TEACHER = t;
+    $('gate').classList.add('hide'); $('app').classList.remove('hide');
+    $('who').textContent = `— ${TEACHER.full_name}`;
+    await loadAll();
+  } catch (e) { $('gMsg').textContent = 'تعذّر الدخول: ' + e.message; }
+}
+
+async function loadAll() {
+  const h = await db.from('itqan_halaqat').select('*').eq('teacher_id', TEACHER.id).order('name');
+  HALAQAT = h.data || [];
+  const ids = HALAQAT.map(x => x.id);
+  const st = ids.length ? await db.from('itqan_students').select('*').in('halaqa_id', ids).order('full_name') : { data: [] };
+  STUDENTS = st.data || [];
+  await reloadDaily();
+  $('halSel').innerHTML = HALAQAT.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('') || '<option>لا توجد حلقات مرتبطة بك</option>';
+  halId = HALAQAT[0]?.id || null;
+  $('halSel').value = halId || '';
+  $('day').value = cur.day; $('day').min = dayStr(-2); $('day').max = dayStr(0);
+  paint();
+}
+
+/* ---------- الحسابات ---------- */
+const stuList = () => STUDENTS.filter(s => s.halaqa_id === halId);
+const rowsOf = sid => DAILY.filter(r => r.student_id === sid);
+function lastAyah(sid, excludeDay) {
+  const st = STUDENTS.find(x => x.id === sid);
+  let last = st?.quran_base_ayah ?? -1;
+  rowsOf(sid).forEach(r => { if (r.ayah_to != null && r.day !== excludeDay) last = Math.max(last, r.ayah_to); });
+  return last;
+}
+const pagesLeft = last => last < 0 ? 604 : 604 - A[last][2];   // pages after the last page reached
+const pct = last => ((last + 1) / A.length * 100);
+function recOf(sid, day) { return DAILY.find(r => r.student_id === sid && r.day === day) || null; }
+
+/* ---------- الرسم ---------- */
+function paint() {
+  halId = $('halSel').value || halId;
+  const list = stuList();
+  $('cnt').textContent = `(${list.length})`;
+  $('roster').innerHTML = list.map(s => {
+    const r = recOf(s.id, cur.day);
+    const last = lastAyah(s.id, null);
+    const atts = ['present','absent','late','excused'].map(k =>
+      `<button class="${ATT_CLS[k]}" ${r?.attendance === k ? 'style="outline:2px solid #1d2b22"' : ''} onclick="setAtt('${s.id}','${k}')">${ATT[k]}</button>`).join('');
+    const prog = last < 0 ? 'لم يبدأ بعد' : `${label(last)} — بقي ${pagesLeft(last)} صفحة (${pct(last).toFixed(1)}%)`;
+    return `<div class="stu ${activeSid === s.id ? 'on' : ''}">
+      <div class="nm">${esc(s.full_name)}</div>
+      <div class="note">${prog}</div>
+      <div class="att">${atts}</div>
+      <button class="btn sm full" onclick="pick('${s.id}')">سمّع</button>
+    </div>`;
+  }).join('') || '<p class="note">لا يوجد طلاب في هذه الحلقة.</p>';
+  renderActive();
+}
+
+function renderActive() {
+  const s = STUDENTS.find(x => x.id === activeSid);
+  if (!s) { $('activeHead').textContent = 'اختر طالباً واضغط «سمّع» لبدء التسميع.'; $('sel').textContent = ''; $('text').innerHTML = ''; $('hist').textContent = '—'; return; }
+  const r = recOf(s.id, cur.day);
+  const last = lastAyah(s.id, cur.day);
+  $('activeHead').innerHTML = `<b>التسميع: ${esc(s.full_name)}</b> — يوم ${cur.day}${r?.attendance ? ' — ' + ATT[r.attendance] : ''}`;
+  if (selStart == null && selEnd == null) renderSelFromDefault(s.id, last);
+  const from = selStart, to = selEnd;
+  if (to == null) $('sel').textContent = from == null ? '' : `البداية: ${label(from)} — اضغط على آخر آية`;
+  else $('sel').textContent = `من: ${label(Math.min(from, to))} — إلى: ${label(Math.max(from, to))} — ${amount(Math.max(from, to) - Math.min(from, to) + 1)}`;
+  renderText(last);
+  renderHist(s.id);
+}
+
+function renderSelFromDefault(sid, excludeLastRow) {
+  const rec = recOf(sid, cur.day);
+  if (rec && rec.ayah_from != null) { selStart = rec.ayah_from; selEnd = rec.ayah_to; return; }
+  const base = lastAyah(sid, cur.day);
+  selStart = base + 1 <= A.length - 1 ? base + 1 : null; selEnd = null;
+}
+
+function renderText(last) {
+  const s = +$('surah').value;
+  const base = starts[s - 1];
+  const rs = selStart, re = selEnd;
+  const lo = rs == null ? null : Math.min(rs, re ?? rs), hi = rs == null ? null : Math.max(rs, re ?? rs);
+  let html = '';
+  for (let i = 0; i < SU[s - 1][1]; i++) {
+    const g = base + i, cls = ['ay'];
+    if (re != null && g >= lo && g <= hi) cls.push('in');
+    if (re != null && g === hi) cls.push('end');
+    if (g === rs && re == null) cls.push('start');
+    if (rs == null && g === last + 1) cls.push('cur');
+    html += `<span class="${cls.join(' ')}" data-g="${g}">${A[g][3]}<span class="num">﴿${AR(A[g][1])}﴾</span></span> `;
+  }
+  $('text').innerHTML = html;
+}
+
+function renderHist(sid) {
+  const rows = rowsOf(sid).filter(r => r.day >= dayStr(-2)).sort((a, b) => b.day.localeCompare(a.day));
+  if (!rows.length) { $('hist').textContent = 'لا يوجد سجل في آخر 3 أيام.'; return; }
+  $('hist').innerHTML = `<table><tr><th>اليوم</th><th>الحضور</th><th>ما سُمِّع</th><th>الكمية</th></tr>` +
+    rows.map(r => `<tr><td>${r.day}</td><td>${r.attendance ? ATT[r.attendance] : '—'}</td>
+      <td>${r.ayah_from != null ? label(r.ayah_from) + ' ← ' + label(r.ayah_to) : '—'}</td>
+      <td>${r.ayah_from != null ? amount(r.ayah_to - r.ayah_from + 1) : '—'}</td></tr>`).join('') + '</table>';
+}
+
+/* ---------- الأفعال ---------- */
+function pick(sid) {
+  activeSid = sid; selStart = null; selEnd = null;
+  paint();
+}
+async function setAtt(sid, k) {
+  const s = STUDENTS.find(x => x.id === sid);
+  const { error } = await db.from('itqan_daily').upsert({
+    branch_id: s.branch_id, halaqa_id: s.halaqa_id, student_id: sid, day: cur.day, attendance: k, recorded_by: ME.id
+  }, { onConflict: 'student_id,day' });
+  if (error) return msg('تعذّر الحفظ: ' + error.message);
+  await reloadDaily(); msg(`${s.full_name}: ${ATT[k]} ✓`, true); paint();
+}
+async function reloadDaily() {
+  const ids = HALAQAT.map(x => x.id);
+  const { data } = await db.from('itqan_daily').select('*').gte('day', dayStr(-30)).in('halaqa_id', ids).order('day');
+  DAILY = data || [];
+}
+async function refreshStudent(sid) {
+  const last = lastAyah(sid, null);
+  const st = STUDENTS.find(x => x.id === sid);
+  const patch = { quran_last_ayah: last >= 0 ? last : null, quran_last_page: last >= 0 ? A[last][2] : null, quran_last_quarter: last >= 0 ? qAt(last) : null };
+  const { error } = await db.from('itqan_students').update(patch).eq('id', sid);
+  if (error) msg('تعذّر تحديث موضع الطالب: ' + error.message);
+  Object.assign(st, patch);
+}
+$('save').onclick = async () => {
+  const s = STUDENTS.find(x => x.id === activeSid); if (!s) return;
+  if (selEnd == null) return msg('اضغط أولاً على آخر آية سمّعها الطالب.');
+  const a = Math.min(selStart, selEnd), b = Math.max(selStart, selEnd);
+  const existing = recOf(s.id, cur.day);
+  const row = {
+    branch_id: s.branch_id, halaqa_id: s.halaqa_id, student_id: s.id, day: cur.day, recorded_by: ME.id,
+    ayah_from: a, ayah_to: b, page_from: A[a][2], page_to: A[b][2]
+  };
+  const { error } = await db.from('itqan_daily').upsert(row, { onConflict: 'student_id,day' });
+  if (error) return msg('تعذّر الحفظ: ' + error.message);
+  await reloadDaily(); await refreshStudent(s.id);
+  selStart = null; selEnd = null;
+  msg(`تم حفظ تسميع ${s.full_name} ✓`, true);
+  paint();
+};
+$('undo').onclick = async () => {
+  const s = STUDENTS.find(x => x.id === activeSid); if (!s) return;
+  if (!confirm('مسح تسميع هذا اليوم لهذا الطالب؟ (يبقى الحضور كما هو)')) return;
+  const { error } = await db.from('itqan_daily').update({ ayah_from: null, ayah_to: null, page_from: null, page_to: null })
+    .eq('student_id', s.id).eq('day', cur.day);
+  if (error) return msg('تعذّر المسح: ' + error.message);
+  await reloadDaily(); await refreshStudent(s.id);
+  selStart = null; selEnd = null; msg('تم مسح تسميع اليوم ✓', true); paint();
+};
+$('clear').onclick = () => { selStart = null; selEnd = null; paint(); };
+$('halSel').onchange = () => { activeSid = null; selStart = null; selEnd = null; paint(); };
+$('day').onchange = () => { cur.day = $('day').value || dayStr(0); selStart = null; selEnd = null; paint(); };
+$('surah').onchange = () => renderText(lastAyah(activeSid, cur.day));
+$('goPage').onclick = () => {
+  const p = +$('pg').value, g = A.findIndex(x => x[2] === p);
+  if (g < 0) return alert('رقم صفحة غير صحيح (1 إلى 604).');
+  $('surah').value = A[g][0]; renderText(lastAyah(activeSid, cur.day));
+  document.querySelector(`[data-g="${g}"]`)?.scrollIntoView({ block: 'center' });
+};
+$('text').addEventListener('click', e => {
+  const el = e.target.closest('[data-g]'); if (!el || activeSid == null) return;
+  const g = +el.dataset.g;
+  if (selStart == null) selStart = lastAyah(activeSid, cur.day) + 1;
+  if (g < selStart) { selEnd = selStart; selStart = g; } else selEnd = g;
+  paint();
+});
+
+/* ---------- المعاينة (صور المصحف hafs/1.png حتى 604.png) ---------- */
+function showPage(p) {
+  previewPage = Math.min(604, Math.max(1, p));
+  $('pTitle').textContent = `صفحة ${previewPage}`;
+  $('pImg').style.display = 'block'; $('pImg').src = `hafs/${previewPage}.png`; $('pMsg').textContent = '';
+}
+$('pImg').onerror = () => { $('pImg').style.display = 'none'; $('pMsg').textContent = 'لم تُعثر على صورة الصفحة. ضع مجلد hafs بجانب هذه الصفحة، بأسماء الملفات 1.png حتى 604.png.'; };
+$('preview').onclick = () => {
+  const g = selEnd ?? selStart ?? (lastAyah(activeSid, cur.day) + 1);
+  showPage(A[Math.min(g, A.length - 1)][2]);
+  $('modal').classList.add('on');
+};
+$('pPrev').onclick = () => showPage(previewPage - 1);
+$('pNext').onclick = () => showPage(previewPage + 1);
+$('pClose').onclick = () => $('modal').classList.remove('on');
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') $('modal').classList.remove('on'); });
+
+function msg(t, ok) { const m = $('msg'); m.className = ok ? 'ok' : ''; m.textContent = t; }
+
+/* ---------- البداية ---------- */
+SU.forEach(([name, count], i) => {
+  const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${name} (${count})`; $('surah').appendChild(o);
+});
+$('surah').value = 1;
+db.auth.getSession().then(({ data: { session } }) => { if (session) enter(); });
+</script>
+</body>
+</html>
