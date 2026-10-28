@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>حلقتي — مدارس الإتقان</title>
+<title>حلقتي — مدرسة الإتقان</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -27,6 +27,8 @@ body{margin:0;font-family:Tajawal,Tahoma,sans-serif;color:var(--ink);background:
 .nav .br{background:linear-gradient(135deg,#e5572a,#f7941d)}
 .nav button.off{opacity:.5}
 
+.hal-banner{max-width:1100px;margin:12px auto 0;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#123d24,#2e7d4f);color:#fff;text-align:center;font-size:22px;font-weight:900;box-shadow:0 4px 14px rgba(18,61,36,.18)}
+.hal-banner .s2{font-size:13px;font-weight:600;opacity:.9;margin-top:4px}
 .ctl{max-width:1100px;margin:6px auto 0;padding:0 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .ctl select{flex:1;min-width:220px}
 
@@ -108,10 +110,11 @@ td,th{border-bottom:1px solid #efe6cc;padding:8px 6px;text-align:right}
 
 <div id="app" class="hide">
   <div class="top">
-    <div><div class="t">مدارس الإتقان لتحفيظ القرآن</div><div class="s" id="who"></div></div>
+    <div><div class="t">مدرسة الإتقان لتحفيظ القرآن الكريم — الفرع الأول</div><div class="s" id="who"></div></div>
     <div><button class="b gray sm" id="outBtn">خروج</button></div>
   </div>
   <div class="banner"><img id="branchImg" src="itqan-branch1-logo.png" alt="الفرع"></div>
+  <div class="hal-banner" id="halBanner"></div>
 
   <!-- الأزرار الرئيسية -->
   <div class="nav">
@@ -386,8 +389,15 @@ function attSummary(sid) {
 }
 
 /* ---------- الرسم ---------- */
+function renderBanner() {
+  const h = HALAQAT.find(x => x.id === halId);
+  $('halBanner').innerHTML = h
+    ? `<div>${esc(h.name)}</div><div class="s2">المعلم: ${esc(TEACHER.full_name)} — ${KIND[h.kind] || ''}</div>`
+    : '<div>لا توجد حلقة مسندة إليك</div>';
+}
 function paint() {
   halId = $('halSel').value || halId;
+  renderBanner();
   if (view === 'att') renderAtt();
   if (view === 'rec') renderRec();
   if (view === 'rec' && recMode === 'page' && activeSid) renderActive();
