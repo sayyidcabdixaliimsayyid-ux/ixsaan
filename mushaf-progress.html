@@ -185,10 +185,20 @@ td,th{border-bottom:1px solid #efe6cc;padding:8px 6px;text-align:right}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="quran-data.js"></script>
 <script>
-const db = supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co', 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');
+/* مكتبة الاتصال: تُحمَّل من مصدرين بديلين حتى لا تتوقف الصفحة إن تعذّر أحدهما */
+const LIBS = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
+              'https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'];
+function loadLib(urls, cb) {
+  if (window.supabase) return cb(true);
+  const u = urls.shift();
+  if (!u) return cb(false);
+  const sc = document.createElement('script');
+  sc.src = u; sc.onload = () => cb(!!window.supabase); sc.onerror = () => loadLib(urls, cb);
+  document.head.appendChild(sc);
+}
+let db = null;
 const A = QDATA.ayahs, SU = QDATA.suras, Q = QDATA.quarters;
 const starts = []; { let acc = 0; SU.forEach(([n, c]) => { starts.push(acc); acc += c; }); }
 const $ = id => document.getElementById(id);
@@ -210,9 +220,12 @@ let cur = { day: dayStr(0) };
 
 /* ---------- الدخول ---------- */
 $('gBtn').onclick = async () => {
-  const { error } = await db.auth.signInWithPassword({ email: $('gEmail').value.trim(), password: $('gPass').value });
-  if (error) { $('gMsg').textContent = 'البريد أو كلمة المرور غير صحيحة'; return; }
-  enter();
+  if (!db) { $('gMsg').textContent = 'جارٍ الاتصال بالخادم… أعد المحاولة بعد لحظة.'; return; }
+  try {
+    const { error } = await db.auth.signInWithPassword({ email: $('gEmail').value.trim(), password: $('gPass').value });
+    if (error) { $('gMsg').textContent = 'البريد أو كلمة المرور غير صحيحة'; return; }
+    enter();
+  } catch (e) { $('gMsg').textContent = 'تعذّر تسجيل الدخول: ' + e.message; }
 };
 $('outBtn').onclick = async () => { await db.auth.signOut(); location.reload(); };
 
@@ -445,7 +458,11 @@ SU.forEach(([name, count], i) => {
   const o = document.createElement('option'); o.value = i + 1; o.textContent = `${i + 1}. ${name} (${count})`; $('surah').appendChild(o);
 });
 $('surah').value = 1;
-db.auth.getSession().then(({ data: { session } }) => { if (session) enter(); });
+loadLib(LIBS.slice(), ok => {
+  if (!ok) { $('gMsg').textContent = 'تعذّر تحميل مكتبة الاتصال. تأكد من الإنترنت ثم أعد فتح الصفحة.'; return; }
+  db = supabase.createClient('https://tmhfjnqujgmwayktsbnd.supabase.co', 'sb_publishable_CZiS1VnVdN3hnc9YT1k4wg_0uE7yNmL');
+  db.auth.getSession().then(({ data: { session } }) => { if (session) enter(); });
+});
 </script>
 </body>
 </html>
