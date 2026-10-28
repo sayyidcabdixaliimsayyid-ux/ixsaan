@@ -877,6 +877,7 @@ function dailyCard(){
     </div>
     <div id="dailyBody" class="note">جارٍ التحميل…</div></div>`;
 }
+const PERIODS_M=[['sabah','الصباح'],['fasl','بعد الفسح'],['ghada','بعد الغذاء']];
 async function loadDaily(){
   const body=$('dailyBody'); if(!body) return;
   const b=scope(); if(!b) return;
@@ -888,13 +889,16 @@ async function loadDaily(){
   if(!body.isConnected) return;
   if(rs.error||ss.error){body.innerHTML='<div class="note">تعذّر التحميل: '+esc((rs.error||ss.error).message)+'</div>';return}
   const R=rs.data||[], S=ss.data||[], today=dOff(0);
-  const subbed=new Set((sb.data||[]).map(x=>x.halaqa_id));   // الحلقات التي سلّمت نتائج اليوم
+  const subbed=new Set((sb.data||[]).map(x=>x.halaqa_id+'|'+x.period));   // تسليمات اليوم حسب الحلقة والفترة
+  const subbedAny=new Set((sb.data||[]).map(x=>x.halaqa_id));              // حلقات سلّمت شيئاً اليوم
   const HAs=HA.filter(h=>h.branch_id===b), TEs=TE.filter(t=>t.branch_id===b);
   // بيانات كل طالب
   const info=new Map(S.map(s=>{
     const mine=R.filter(r=>r.student_id===s.id);
-    const t=mine.find(r=>r.day===today)||null;
-    const recs=mine.filter(r=>r.ayah_from!=null).sort((x,y)=>y.day.localeCompare(x.day));
+    const att={};
+    PERIODS_M.forEach(([p])=>{att[p]=mine.find(r=>r.day===today&&r.period===p)||null});
+    const recT=mine.find(r=>r.day===today&&r.period==='tasmee')||null;
+    const recs=mine.filter(r=>r.period==='tasmee'&&r.ayah_from!=null).sort((x,y)=>y.day.localeCompare(x.day));
     const last10=recs.slice(0,10);
     const rate=last10.length?last10.reduce((a,r)=>a+(r.ayah_to-r.ayah_from+1),0)/last10.length:0;
     // الموضع = عدد الآيات المسموعة بترتيب القراءة (من الناس نحو البقرة)
@@ -902,14 +906,19 @@ async function loadDaily(){
     const left=TOTAL_AYAHS-doneAyahs;
     const days=rate>0?Math.ceil(left/rate):null;
     let finish=null; if(days!=null){const d=new Date();d.setDate(d.getDate()+days);finish=d.toLocaleDateString('ar',{day:'numeric',month:'long',year:'numeric'})}
-    return [s.id,{s,t,recToday:t&&t.ayah_from!=null?t:null,rate,left,days,finish,doneAyahs,pages:s.quran_last_page}];
+    return [s.id,{s,att,recToday:recT&&recT.ayah_from!=null?recT:null,rate,left,days,finish,doneAyahs,pages:s.quran_last_page}];
   }));
   const row=(x,showHalaqa)=>{
-    const {s,t,recToday,rate,left,days,finish,doneAyahs,pages}=x;
+    const {s,att,recToday,rate,left,days,finish,doneAyahs,pages}=x;
     const hh=HA.find(h=>h.id===s.halaqa_id);
     const pctDone=(doneAyahs/TOTAL_AYAHS*100).toFixed(1);
-    const attTxt=t?.attendance?`<span style="color:${DAILY_ATT_CLS[t.attendance]};font-weight:800">${DAILY_ATT[t.attendance]}</span>`:'—';
-    const recTxt=recToday?`${recToday.ayah_to-recToday.ayah_from+1} آية (${recToday.ayah_from===recToday.ayah_to?'آية واحدة':'من '+(recToday.ayah_from+1)+' إلى '+(recToday.ayah_to+1)})`:'—';
+    const attTxt=PERIODS_M.map(([p,n])=>{
+      if(!subbed.has(s.halaqa_id+'|'+p)) return `${n}: <span class="note">⏳</span>`;
+      const a=att[p]?.attendance;
+      return `${n}: `+(a?`<span style="color:${DAILY_ATT_CLS[a]};font-weight:800">${DAILY_ATT[a]}</span>`:'—');
+    }).join('<br>');
+    const recTxt=!subbed.has(s.halaqa_id+'|tasmee')?'<span class="note">⏳</span>'
+      :(recToday?`${recToday.ayah_to-recToday.ayah_from+1} آية (${recToday.page_from===recToday.page_to?'صفحة '+recToday.page_from:'من صفحة '+recToday.page_from+' إلى '+recToday.page_to})`:'—');
     return `<tr>
       <td>${sName(s)}</td>
       ${showHalaqa?`<td>${esc(hh?.name||'—')}</td>`:''}
@@ -921,28 +930,34 @@ async function loadDaily(){
       <td>${days?`حوالي ${days} يوم`:'—'}</td>
       <td>${finish||'—'}</td></tr>`;
   };
-  const head=(showHalaqa)=>`<div class="tw"><table><tr><th>الطالب</th>${showHalaqa?'<th>الحلقة</th>':''}<th>الحضور اليوم</th><th>تسميع اليوم</th><th>وصل إلى</th><th>المتبقي</th><th>المعدل</th><th>المدة المتوقعة للباقي</th><th>الانتهاء التقريبي</th></tr>`;
+  const head=(showHalaqa)=>`<div class="tw"><table><tr><th>الطالب</th>${showHalaqa?'<th>الحلقة</th>':''}<th>التحضير اليوم</th><th>تسميع اليوم</th><th>وصل إلى</th><th>المتبقي</th><th>المعدل</th><th>المدة المتوقعة للباقي</th><th>الانتهاء التقريبي</th></tr>`;
   const counts=arr=>{
-    const c=k=>arr.filter(x=>x.t&&x.t.attendance===k).length;
-    const rec=arr.filter(x=>x.recToday).length;
-    return `حاضر ${c('present')} · غائب ${c('absent')} · متأخر ${c('late')} · بعذر ${c('excused')} · سمّع ${rec} من ${arr.length}`;
+    const parts=PERIODS_M.map(([p,n])=>{
+      const xs=arr.filter(x=>subbed.has(x.s.halaqa_id+'|'+p));
+      if(!xs.length) return null;
+      const c=k=>xs.filter(x=>x.att[p]?.attendance===k).length;
+      return `${n}: حاضر ${c('present')} · غائب ${c('absent')} · متأخر ${c('late')} · بعذر ${c('excused')}`;
+    }).filter(Boolean);
+    const rec=arr.filter(x=>x.recToday&&subbed.has(x.s.halaqa_id+'|tasmee')).length;
+    parts.push(`سمّع ${rec} من ${arr.length}`);
+    return parts.join(' · ');
   };
   let html='';
   if(DG==='teacher'){
     const groups=TEs.map(t=>{
       const hs=HAs.filter(h=>h.teacher_id===t.id);
-      const arr=[...info.values()].filter(x=>hs.some(h=>h.id===x.s.halaqa_id)&&subbed.has(x.s.halaqa_id));
-      const pend=hs.filter(h=>!subbed.has(h.id)).map(h=>h.name);
+      const arr=[...info.values()].filter(x=>hs.some(h=>h.id===x.s.halaqa_id)&&subbedAny.has(x.s.halaqa_id));
+      const pend=hs.filter(h=>!subbedAny.has(h.id)).map(h=>h.name);
       return {title:`المعلم: ${t.full_name}`,arr,pend,showHalaqa:true};
     });
-    const unassigned=[...info.values()].filter(x=>!HAs.some(h=>h.id===x.s.halaqa_id&&h.teacher_id)&&subbed.has(x.s.halaqa_id));
+    const unassigned=[...info.values()].filter(x=>!HAs.some(h=>h.id===x.s.halaqa_id&&h.teacher_id)&&subbedAny.has(x.s.halaqa_id));
     if(unassigned.length) groups.push({title:'بدون معلم',arr:unassigned,pend:[],showHalaqa:true});
     html=groups.filter(g=>g.arr.length||g.pend.length).map(g=>`<div class="grp">${esc(g.title)} <span class="note">— ${g.arr.length?counts(g.arr):'لم يُسلَّم بعد'}</span></div>${g.pend.length?`<p class="note">⏳ بانتظار تسليم: ${g.pend.map(esc).join('، ')}</p>`:''}${g.arr.length?head(true)+g.arr.map(x=>row(x,true)).join('')+'</table></div>':''}`).join('');
   } else {
     html=HAs.map(h=>{
       const arr=[...info.values()].filter(x=>x.s.halaqa_id===h.id);
       const t=TEs.find(t=>t.id===h.teacher_id);
-      return {title:`الحلقة: ${h.name}`+(t?` — المعلم: ${t.full_name}`:''),arr,ok:subbed.has(h.id)};
+      return {title:`الحلقة: ${h.name}`+(t?` — المعلم: ${t.full_name}`:''),arr,ok:subbedAny.has(h.id)};
     }).filter(g=>g.arr.length).map(g=>g.ok
       ?`<div class="grp">${esc(g.title)} <span class="note">— ${counts(g.arr)}</span></div>${head(false)}${g.arr.map(x=>row(x,false)).join('')}</table></div>`
       :`<div class="grp">${esc(g.title)} <span class="note">— ⏳ لم يُسلَّم بعد</span></div>`).join('');

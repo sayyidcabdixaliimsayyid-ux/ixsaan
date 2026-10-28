@@ -149,8 +149,13 @@ td,th{border-bottom:1px solid #efe6cc;padding:8px 6px;text-align:right}
   <div id="viewAtt" class="wrap hide" style="grid-template-columns:1fr">
     <div class="card">
       <h3>التحضير</h3>
+      <div id="periodBar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
       <div id="attSum" class="sum"></div>
       <div id="attList"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">
+        <button class="b g" id="attSubmitBtn">تسليم إلى الإدارة</button>
+        <span id="attSubmitInfo" class="note"></span>
+      </div>
     </div>
   </div>
 
@@ -258,6 +263,10 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const AR = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 const ATT = { present:'حاضر', absent:'غائب', late:'متأخر', excused:'بعذر' };
+/* فترات التحضير اليومي الثلاث، والتسميع يُحفظ بفترة 'tasmee' */
+const PERIODS = [['sabah','الصباح'],['fasl','بعد الفسح'],['ghada','بعد الغذاء']];
+let period = 'sabah';
+const PN = () => PERIODS.find(x => x[0] === period)[1];
 const ATT_CLS = { present:'p', absent:'a', late:'l', excused:'e' };
 const BRANCH_BANNER = { 'itqan-1':'itqan-branch1-logo.png', 'itqan-2':'branch2-banner.png', 'itqan-3':'branch3-banner.png' };
 const KIND = { rw:'حلقة القراءة والكتابة', quran:'حلقة قرآن' };
@@ -328,6 +337,7 @@ function showView(v) {
   $('navProfile').classList.toggle('off', v !== 'profile');
   $('navAtt').classList.toggle('off', v !== 'att');
   $('navRec').classList.toggle('off', v !== 'rec');
+  if (v === 'att') period = (PERIODS.find(([k]) => !subOf(halId, cur.day, k)) || PERIODS[0])[0];
   if (v === 'rec' && recMode === 'list') activeSid = null;
   paint();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -367,8 +377,13 @@ function selLabel() {
   const [a, b] = POS[selStart] <= POS[selEnd] ? [selStart, selEnd] : [selEnd, selStart];
   return `من ${label(a)} — إلى ${label(b)} — ${amount(POS[b] - POS[a] + 1)}`;
 }
-function recOf(sid, day) { return DAILY.find(r => r.student_id === sid && r.day === day) || null; }
-function subOf(hid, day) { return SUBS.find(x => x.halaqa_id === hid && x.day === day) || null; }
+function attOf(sid, day, p) { return DAILY.find(r => r.student_id === sid && r.day === day && r.period === p) || null; }
+function recOf(sid, day) { return DAILY.find(r => r.student_id === sid && r.day === day && r.period === 'tasmee') || null; }
+function subOf(hid, day, p = 'tasmee') { return SUBS.find(x => x.halaqa_id === hid && x.day === day && x.period === p) || null; }
+function attSummary(sid) {
+  const parts = PERIODS.map(([k, n]) => { const r = attOf(sid, cur.day, k); return r?.attendance ? `${n}: ${ATT[r.attendance]}` : null; }).filter(Boolean);
+  return parts.length ? ' — ' + parts.join(' · ') : '';
+}
 
 /* ---------- الرسم ---------- */
 function paint() {
@@ -380,14 +395,21 @@ function paint() {
 
 function renderAtt() {
   const list = stuList();
-  const c = k => list.filter(s => recOf(s.id, cur.day)?.attendance === k).length;
-  $('attSum').textContent = `اليوم ${cur.day}: حاضر ${c('present')} · غائب ${c('absent')} · متأخر ${c('late')} · بعذر ${c('excused')} — من ${list.length} طالباً`;
+  const c = k => list.filter(s => attOf(s.id, cur.day, period)?.attendance === k).length;
+  $('periodBar').innerHTML = PERIODS.map(([k, n]) =>
+    `<button class="b ${k === period ? 'g' : 'gray'} sm" onclick="setPeriod('${k}')">${n}${subOf(halId, cur.day, k) ? ' ✓' : ''}</button>`).join('');
+  $('attSum').textContent = `${PN()} — اليوم ${cur.day}: حاضر ${c('present')} · غائب ${c('absent')} · متأخر ${c('late')} · بعذر ${c('excused')} — من ${list.length} طالباً`;
   $('attList').innerHTML = list.map(s => {
-    const r = recOf(s.id, cur.day);
+    const r = attOf(s.id, cur.day, period);
     const btns = ['present','absent','late','excused'].map(k =>
       `<button class="${ATT_CLS[k]} ${r?.attendance === k ? 'cur' : ''}" onclick="setAtt('${s.id}','${k}')">${ATT[k]}</button>`).join('');
-    return `<div class="rw"><span class="nm">${esc(s.full_name)}</span><div class="att">${btns}</div></div>`;
+    return `<div class="rw ${r?.attendance ? 'done' : ''}"><span class="nm">${esc(s.full_name)}</span><div class="att">${btns}</div></div>`;
   }).join('') || '<p class="note">لا يوجد طلاب في هذه الحلقة.</p>';
+  const sub = subOf(halId, cur.day, period);
+  $('attSubmitBtn').textContent = sub ? `إعادة تسليم ${PN()} إلى الإدارة` : `تسليم ${PN()} إلى الإدارة`;
+  $('attSubmitInfo').textContent = sub
+    ? `تم التسليم ✓ الساعة ${new Date(sub.submitted_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}`
+    : 'بعد التسليم تظهر نتائج هذه الفترة لدى الإدارة.';
 }
 
 function renderRec() {
@@ -420,7 +442,7 @@ function renderActive() {
   if (!s) { recMode = 'list'; renderRec(); return; }
   const r = recOf(s.id, cur.day);
   const last = lastAyah(s.id, cur.day);
-  $('activeHead').innerHTML = `<b style="color:#123d24;font-size:18px">التسميع: ${esc(s.full_name)}</b> — يوم ${cur.day}${r?.attendance ? ' — ' + ATT[r.attendance] : ''}`;
+  $('activeHead').innerHTML = `<b style="color:#123d24;font-size:18px">التسميع: ${esc(s.full_name)}</b> — يوم ${cur.day}${attSummary(s.id)}`;
   if (selStart == null && selEnd == null) renderSelFromDefault(s.id);
   const from = selStart, to = selEnd;
   $('sel').textContent = selLabel();
@@ -517,8 +539,8 @@ $('backBtn').onclick = backToList;
 async function setAtt(sid, k) {
   const s = STUDENTS.find(x => x.id === sid);
   const { error } = await db.from('itqan_daily').upsert({
-    branch_id: s.branch_id, halaqa_id: s.halaqa_id, student_id: sid, day: cur.day, attendance: k, recorded_by: ME.id
-  }, { onConflict: 'student_id,day' });
+    branch_id: s.branch_id, halaqa_id: s.halaqa_id, student_id: sid, day: cur.day, period, attendance: k, recorded_by: ME.id
+  }, { onConflict: 'student_id,day,period' });
   if (error) return msg('تعذّر الحفظ: ' + error.message);
   await reloadDaily(); msg(`${s.full_name}: ${ATT[k]} ✓`, true); paint();
 }
@@ -547,9 +569,9 @@ $('save').onclick = async () => {
   const [a, b] = POS[selStart] <= POS[selEnd] ? [selStart, selEnd] : [selEnd, selStart];
   const row = {
     branch_id: s.branch_id, halaqa_id: s.halaqa_id, student_id: s.id, day: cur.day, recorded_by: ME.id,
-    ayah_from: a, ayah_to: b, page_from: A[a][2], page_to: A[b][2]
+    period: 'tasmee', ayah_from: a, ayah_to: b, page_from: A[a][2], page_to: A[b][2]
   };
-  const { error } = await db.from('itqan_daily').upsert(row, { onConflict: 'student_id,day' });
+  const { error } = await db.from('itqan_daily').upsert(row, { onConflict: 'student_id,day,period' });
   if (error) return msg('تعذّر الحفظ: ' + error.message);
   await reloadDaily(); await refreshStudent(s.id);
   msg(`تم حفظ تسميع ${s.full_name} ✓ — يمكنك العودة إلى القائمة`, true);
@@ -560,7 +582,7 @@ $('undo').onclick = async () => {
   const s = STUDENTS.find(x => x.id === activeSid); if (!s) return;
   if (!confirm('مسح تسميع هذا اليوم لهذا الطالب؟ (يبقى الحضور كما هو)')) return;
   const { error } = await db.from('itqan_daily').update({ ayah_from: null, ayah_to: null, page_from: null, page_to: null })
-    .eq('student_id', s.id).eq('day', cur.day);
+    .eq('student_id', s.id).eq('day', cur.day).eq('period', 'tasmee');
   if (error) return msg('تعذّر المسح: ' + error.message);
   await reloadDaily(); await refreshStudent(s.id);
   selStart = null; selEnd = null; msg('تم مسح تسميع اليوم ✓', true); renderActive();
@@ -574,10 +596,27 @@ $('submitBtn').onclick = async () => {
   if (done < list.length && !confirm(`سمّع ${done} من ${list.length} طلاب فقط. هل تريد التسليم؟`)) return;
   if (!confirm('تسليم نتائج اليوم إلى الإدارة؟')) return;
   const { error } = await db.from('itqan_submissions').upsert({
-    halaqa_id: hid, day: cur.day, teacher_id: TEACHER.id, submitted_by: ME.id, submitted_at: new Date().toISOString()
-  }, { onConflict: 'halaqa_id,day' });
+    halaqa_id: hid, day: cur.day, period: 'tasmee', teacher_id: TEACHER.id, submitted_by: ME.id, submitted_at: new Date().toISOString()
+  }, { onConflict: 'halaqa_id,day,period' });
   if (error) return msg('تعذّر التسليم: ' + error.message);
   await reloadDaily(); msg('تم التسليم إلى الإدارة ✓', true); paint();
+};
+
+function setPeriod(k) { period = k; paint(); }
+$('attSubmitBtn').onclick = async () => {
+  const hid = halId; if (!hid) return;
+  const list = stuList();
+  const done = list.filter(s => attOf(s.id, cur.day, period)?.attendance).length;
+  if (done < list.length && !confirm(`سجّلتَ حضور ${done} من ${list.length} طلاب في ${PN()}. هل تريد التسليم؟`)) return;
+  if (!confirm(`تسليم تحضير ${PN()} إلى الإدارة؟`)) return;
+  const { error } = await db.from('itqan_submissions').upsert({
+    halaqa_id: hid, day: cur.day, period, teacher_id: TEACHER.id, submitted_by: ME.id, submitted_at: new Date().toISOString()
+  }, { onConflict: 'halaqa_id,day,period' });
+  if (error) return msg('تعذّر التسليم: ' + error.message);
+  await reloadDaily();
+  const i = PERIODS.findIndex(x => x[0] === period);
+  if (i < PERIODS.length - 1) period = PERIODS[i + 1][0];   // ينتقل إلى الفترة التالية
+  msg('تم تسليم التحضير ✓', true); paint();
 };
 
 $('halSel').onchange = () => { activeSid = null; recMode = 'list'; selStart = null; selEnd = null; paint(); };
