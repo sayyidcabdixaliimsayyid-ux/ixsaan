@@ -27,7 +27,7 @@ body{margin:0;font-family:Tajawal,Tahoma,sans-serif;color:var(--ink);background:
 .nav .br{background:linear-gradient(135deg,#e5572a,#f7941d)}
 .nav button.off{opacity:.5}
 
-.hal-banner{max-width:1100px;margin:12px auto 0;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#123d24,#2e7d4f);color:#fff;text-align:center;font-size:22px;font-weight:900;box-shadow:0 4px 14px rgba(18,61,36,.18)}
+.hal-banner{max-width:1100px;margin:12px auto 0;padding:14px 18px;border-radius:14px;background:linear-gradient(135deg,#123d24,#2e7d4f);color:#fff;text-align:center;font-size:30px;font-weight:900;box-shadow:0 4px 14px rgba(18,61,36,.18)}
 .hal-banner .s2{font-size:13px;font-weight:600;opacity:.9;margin-top:4px}
 .ctl{max-width:1100px;margin:6px auto 0;padding:0 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .ctl select{flex:1;min-width:220px}
@@ -105,13 +105,14 @@ td,th{border-bottom:1px solid #efe6cc;padding:8px 6px;text-align:right}
   <input class="full" id="gEmail" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
   <input class="full" id="gPass" type="password" placeholder="كلمة المرور" autocomplete="current-password">
   <button class="b g full" id="gBtn">دخول</button>
+  <a href="index.html" style="display:block;margin-top:14px;text-align:center;color:#123d24;font-weight:700">← العودة إلى الجمعية</a>
   <div id="gMsg" class="note" style="color:#8c2030;margin-top:8px"></div>
 </div>
 
 <div id="app" class="hide">
   <div class="top">
     <div><div class="t">مدرسة الإتقان لتحفيظ القرآن الكريم — الفرع الأول</div><div class="s" id="who"></div></div>
-    <div><button class="b gray sm" id="outBtn">خروج</button></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a href="index.html" style="display:inline-block;background:#1b6b3a;color:#fff;border-radius:10px;padding:9px 16px;font-weight:700;text-decoration:none;font-size:15px">← العودة إلى الجمعية</a><button class="b gray sm" id="outBtn">خروج</button></div>
   </div>
   <div class="banner"><img id="branchImg" src="itqan-branch1-logo.png" alt="الفرع"></div>
   <div class="hal-banner" id="halBanner"></div>
@@ -392,7 +393,7 @@ function attSummary(sid) {
 function renderBanner() {
   const h = HALAQAT.find(x => x.id === halId);
   $('halBanner').innerHTML = h
-    ? `<div>${esc(h.name)}</div><div class="s2">المعلم: ${esc(TEACHER.full_name)} — ${KIND[h.kind] || ''}</div>`
+    ? `<div>حلقتي: ${esc(h.name)}</div><div class="s2">المعلم: ${esc(TEACHER.full_name)} — ${KIND[h.kind] || ''}</div>`
     : '<div>لا توجد حلقة مسندة إليك</div>';
 }
 function paint() {
