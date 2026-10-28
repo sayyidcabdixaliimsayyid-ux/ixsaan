@@ -3,109 +3,169 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>حلقة المعلم — الحضور والتسميع</title>
+<title>حلقتي — مدارس الإتقان</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
 <style>
+:root{--gold:#c9a04a;--green:#1b6b3a;--dark:#123d24;--cream:#fbf7ee;--ink:#2a1d0a}
 *{box-sizing:border-box}
-body{margin:0;background:#f5f2ea;font-family:Tajawal,Tahoma,sans-serif;color:#1d2b22;font-size:16px}
-header{background:#0b4a33;color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-header b{font-size:18px}
-header .who{font-size:14px;opacity:.9}
-.wrap{display:grid;grid-template-columns:360px 1fr;gap:14px;padding:14px;max-width:1280px;margin:auto}
+body{margin:0;font-family:Tajawal,Tahoma,sans-serif;color:var(--ink);background:radial-gradient(circle at 20% 0,#fff8e6,#f3ead2 60%,#ebe0c4);min-height:100vh;font-size:17px}
+.hide{display:none!important}
+
+/* ترويسة */
+.top{background:linear-gradient(120deg,var(--dark),var(--green));color:#fff;padding:12px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+.top .t{font-weight:900;font-size:19px}
+.top .s{font-size:14px;opacity:.9}
+.banner{display:flex;justify-content:center;align-items:center;padding:14px;margin:12px auto 8px;max-width:1100px;border-radius:22px;background:linear-gradient(135deg,#0b2f22,#14532d 55%,#0b2f22);box-shadow:0 14px 34px rgba(20,83,45,.3)}
+.banner img{width:min(640px,100%);height:auto;background:#fff;border-radius:16px;padding:8px}
+
+/* أزرار التنقل */
+.nav{display:flex;gap:12px;flex-wrap:wrap;max-width:1100px;margin:10px auto 6px;padding:0 14px}
+.nav button{flex:1;min-width:200px;font:inherit;font-weight:900;font-size:17px;color:#fff;border:0;border-radius:18px;padding:16px 18px;cursor:pointer;text-align:right;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:transform .15s}
+.nav button:hover{transform:translateY(-2px)}
+.nav button small{display:block;font-weight:600;font-size:13px;opacity:.9;margin-top:4px}
+.nav .bp{background:linear-gradient(135deg,#7a5c3a,#a88a5c)}
+.nav .bh{background:linear-gradient(135deg,#1b6b3a,#2f9e5a)}
+.nav button.off{opacity:.55}
+
+.wrap{display:grid;grid-template-columns:360px 1fr;gap:14px;padding:12px 14px 24px;max-width:1100px;margin:auto}
 @media(max-width:860px){.wrap{grid-template-columns:1fr}}
-.card{background:#fff;border:1px solid #e0dccf;border-radius:14px;padding:14px;margin-bottom:12px}
-h3{margin:0 0 8px;color:#0b4a33;font-size:17px}
+.card{background:rgba(255,255,255,.96);border:1px solid #e8d3a2;border-radius:18px;padding:16px;margin:0 0 12px;box-shadow:0 6px 16px rgba(0,0,0,.06)}
+.card h3{margin:0 0 10px;color:var(--green);font-weight:900;font-size:18px}
 .note{font-size:13px;color:#6b6b5a;line-height:1.7}
-.btn{font:inherit;font-weight:700;padding:10px 12px;border:0;border-radius:9px;background:#0b4a33;color:#fff;cursor:pointer;margin:3px 0}
-.btn.full{width:100%}
-.btn.alt{background:#c9a04a;color:#2a1d0a}
-.btn.gray{background:#e9e4d6;color:#1d2b22}
-.btn.red{background:#9b2c2c}
-.btn.sm{padding:6px 9px;font-size:13px;margin:0}
-input,select{font:inherit;padding:9px;border:1px solid #d6d0bf;border-radius:8px;background:#fff}
-input.full{width:100%;margin:4px 0}
-.stu{border:1px solid #e6e1d2;border-radius:10px;padding:10px;margin-bottom:8px}
-.stu.on{border-color:#0b4a33;box-shadow:0 0 0 2px #d8efe2 inset}
-.stu .nm{font-weight:800;font-size:16px}
-.att{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
-.att button{font:inherit;font-size:13px;padding:5px 8px;border-radius:7px;border:1px solid #cfc8b3;background:#faf8f2;cursor:pointer}
-.att button.p{background:#0b4a33;color:#fff;border-color:#0b4a33}
-.att button.a{background:#9b2c2c;color:#fff;border-color:#9b2c2c}
-.att button.l{background:#c9a04a;color:#2a1d0a;border-color:#c9a04a}
-.att button.e{background:#4a6fa5;color:#fff;border-color:#4a6fa5}
-.bar{height:10px;background:#e6e1d2;border-radius:8px;overflow:hidden;margin:4px 0}
-.bar i{display:block;height:100%;background:#0b4a33}
-.ayahs{font-family:Amiri,serif;font-size:27px;line-height:2.2;text-align:justify;direction:rtl}
+.grp{background:linear-gradient(90deg,#fbf0d4,#fbf7ee);border-right:6px solid var(--gold);padding:10px 14px;margin:14px 0 8px;border-radius:12px;font-weight:900;color:var(--dark)}
+
+/* أزرار عامة */
+button.b{font:inherit;font-weight:800;background:linear-gradient(135deg,#e5572a,#f7941d);color:#fff;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;box-shadow:0 4px 10px rgba(229,87,42,.25)}
+button.b.g{background:linear-gradient(135deg,#1b6b3a,#2f9e5a);box-shadow:0 4px 10px rgba(27,107,58,.25)}
+button.b.m{background:linear-gradient(135deg,#7a5c3a,#a88a5c);box-shadow:0 4px 10px rgba(122,92,58,.25)}
+button.b.r{background:linear-gradient(135deg,#8c2030,#c8404f);box-shadow:0 4px 10px rgba(140,32,48,.25)}
+button.b.gold{background:linear-gradient(135deg,#c9a04a,#e2be6c);color:#2a1d0a;box-shadow:0 4px 10px rgba(201,160,74,.3)}
+button.b.gray{background:#efe9d8;color:var(--ink);box-shadow:none}
+button.b.sm{padding:7px 11px;font-size:14px}
+button.b.full{width:100%}
+input,select{font:inherit;padding:9px 11px;border:2px solid #e8d3a2;border-radius:11px;background:#fff;color:var(--ink)}
+input.full{width:100%;margin:5px 0}
+.gate{max-width:400px;margin:60px auto;background:#fff;border-radius:20px;padding:24px;border:1px solid #e8d3a2;box-shadow:0 10px 26px rgba(0,0,0,.08)}
+.gate h2{text-align:center;color:var(--green);margin:4px 0 14px;font-weight:900}
+
+/* طلاب */
+.stu{border:2px solid #efe6cc;border-radius:14px;padding:11px;margin-bottom:9px;background:#fff}
+.stu.on{border-color:var(--green);box-shadow:0 0 0 3px #d8efe2}
+.stu .nm{font-weight:900;font-size:17px;color:var(--dark)}
+.att{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0}
+.att button{font:inherit;font-size:13px;font-weight:700;padding:6px 9px;border-radius:9px;border:0;background:#f1ecdc;color:var(--ink);cursor:pointer}
+.att button.p{background:#1b6b3a;color:#fff}
+.att button.a{background:#c8404f;color:#fff}
+.att button.l{background:#e2be6c;color:#2a1d0a}
+.att button.e{background:#4a6fa5;color:#fff}
+.att button.cur{outline:3px solid #123d24}
+.bar{height:10px;background:#efe6cc;border-radius:8px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#1b6b3a,#2f9e5a)}
+
+/* مصحف */
+.ayahs{font-family:Amiri,serif;font-size:27px;line-height:2.2;text-align:justify;direction:rtl;background:#fffdf7;border:1px solid #efe6cc;border-radius:14px;padding:12px}
 .ay{cursor:pointer;display:inline-block;padding:2px 4px;border-radius:6px;user-select:none}
 .ay:hover{background:#f1ecdc}
 .ay.in{background:#d8efe2}
-.ay.start{box-shadow:inset 0 -3px 0 #0b4a33}
+.ay.start{box-shadow:inset 0 -3px 0 #1b6b3a}
 .ay.end{background:#c9a04a;color:#fff}
-.ay.cur{outline:2px dashed #0b4a33}
+.ay.cur{outline:2px dashed #1b6b3a}
 .num{font-family:Tajawal,sans-serif;font-size:14px;color:#8a7a52;margin:0 2px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-td,th{border-bottom:1px solid #eee;padding:6px 4px;text-align:right}
+
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{background:#f7f0dd;color:var(--dark);font-weight:800}
+td,th{border-bottom:1px solid #efe6cc;padding:8px 6px;text-align:right}
+.tw{overflow-x:auto}
 .modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:12px;z-index:9}
 .modal.on{display:flex}
-.box{background:#fff;border-radius:14px;padding:12px;max-width:900px;width:100%;max-height:96vh;overflow:auto;text-align:center}
-.box img{max-width:100%;height:auto;border-radius:8px;display:block;margin:8px auto}
-.gate{max-width:380px;margin:60px auto;background:#fff;border-radius:14px;padding:20px;border:1px solid #e0dccf}
-.hide{display:none!important}
-#msg{font-size:14px;margin:6px 0;color:#9b2c2c}
-#msg.ok{color:#0b4a33}
+.box{background:#fff;border-radius:18px;padding:14px;max-width:900px;width:100%;max-height:96vh;overflow:auto;text-align:center}
+.box img{max-width:100%;height:auto;border-radius:10px;display:block;margin:8px auto}
+#msg{font-size:15px;margin:8px 16px;color:#8c2030;font-weight:700;max-width:1100px}
+#msg.ok{color:#1b6b3a}
+.pill{display:inline-block;background:#f7f0dd;border-radius:999px;padding:3px 10px;font-size:13px;margin:2px;color:var(--dark)}
 </style>
 </head>
 <body>
 
+<!-- ============ دخول ============ -->
 <div id="gate" class="gate">
-  <h3>دخول المعلم</h3>
+  <h2>دخول المعلم</h2>
   <input class="full" id="gEmail" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
   <input class="full" id="gPass" type="password" placeholder="كلمة المرور" autocomplete="current-password">
-  <button class="btn full" id="gBtn">دخول</button>
-  <div id="gMsg" class="note" style="color:#9b2c2c"></div>
+  <button class="b g full" id="gBtn">دخول</button>
+  <div id="gMsg" class="note" style="color:#8c2030;margin-top:8px"></div>
 </div>
 
 <div id="app" class="hide">
-  <header>
-    <div><b>حلقتي</b> <span class="who" id="who"></span></div>
+  <!-- ترويسة -->
+  <div class="top">
+    <div><div class="t">مدارس الإتقان لتحفيظ القرآن</div><div class="s" id="who"></div></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <select id="halSel"></select>
-      <input type="date" id="day">
-      <button class="btn sm gray" id="outBtn">خروج</button>
+      <button class="b gray sm" id="outBtn">خروج</button>
     </div>
-  </header>
+  </div>
+  <div class="banner"><img id="branchImg" src="itqan-branch1-logo.png" alt="الفرع"></div>
+
+  <!-- أزرار: ملفي وحلقتي -->
+  <div class="nav">
+    <button class="bp" id="navProfile" onclick="showView('profile')">ملفي<small>بياناتي والمهام المكلّف بها</small></button>
+    <button class="bh" id="navHalaqa" onclick="showView('halaqa')">حلقتي<small id="navHalaqaSub">الحضور والتسميع</small></button>
+  </div>
   <div id="msg"></div>
 
-  <div class="wrap">
+  <!-- ============ ملفي ============ -->
+  <div id="viewProfile" class="wrap" style="grid-template-columns:1fr">
+    <div class="card">
+      <h3>بياناتي</h3>
+      <div id="profileBox" class="note">—</div>
+    </div>
+    <div class="card">
+      <h3>المهام المكلّف بها</h3>
+      <ol style="line-height:2;padding-right:20px;margin:0">
+        <li>تسجيل حضور كل طالب في حلقتك يومياً: حاضر، غائب، متأخر، أو بعذر.</li>
+        <li>تسميع كل طالب: تحديد آخر آية سمّعها في الدرس، فيُحسب الباقي تلقائياً.</li>
+        <li>تسجيل التسميع يومياً، فتنعكس النتائج على إدارة الفرع في يومها.</li>
+        <li>متابعة الطالب المتأخر أو الذي لم يُسمّع، والتنسيق مع إدارة الفرع عند الحاجة.</li>
+        <li>الحفاظ على سرية بيانات الطلاب وعدم مشاركتها خارج الإدارة.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ============ حلقتي ============ -->
+  <div id="viewHalaqa" class="wrap hide">
     <aside>
       <div class="card">
-        <h3>الطلاب <span class="note" id="cnt"></span></h3>
+        <h3>الحلقة والطلاب <span class="note" id="cnt"></span></h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="halSel" style="flex:1"></select>
+          <input type="date" id="day">
+        </div>
         <div id="roster"></div>
       </div>
     </aside>
 
     <main>
-      <div class="card" id="activeCard">
+      <div class="card">
         <div id="activeHead" class="note">اختر طالباً واضغط «سمّع» لبدء التسميع.</div>
         <div id="sel" class="note" style="margin-top:6px"></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">
           <select id="surah" style="flex:1;min-width:180px"></select>
           <input id="pg" type="number" min="1" max="604" placeholder="رقم الصفحة" style="width:120px">
-          <button class="btn sm" id="goPage">اذهب</button>
+          <button class="b g sm" id="goPage">اذهب</button>
         </div>
         <p class="note">اضغط على آخر آية سمّعها الطالب في هذا الدرس. يبدأ الدرس تلقائياً من الآية التالية لآخر ما حفظه.</p>
         <div id="text" class="ayahs"></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-          <button class="btn" id="save">حفظ التسميع</button>
-          <button class="btn alt" id="preview">معاينة الصفحة</button>
-          <button class="btn gray" id="clear">إلغاء التحديد</button>
-          <button class="btn red" id="undo">مسح تسميع اليوم</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="b g" id="save">حفظ التسميع</button>
+          <button class="b gold" id="preview">معاينة الصفحة</button>
+          <button class="b gray" id="clear">إلغاء التحديد</button>
+          <button class="b r" id="undo">مسح تسميع اليوم</button>
         </div>
       </div>
 
       <div class="card">
-        <h3>آخر 3 أيام للطالب المحدد</h3>
+        <h3>سجل الطالب المحدد</h3>
         <div id="hist" class="note">—</div>
       </div>
     </main>
@@ -115,13 +175,13 @@ td,th{border-bottom:1px solid #eee;padding:6px 4px;text-align:right}
 <div class="modal" id="modal">
   <div class="box">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <button class="btn gray sm" id="pPrev">‹ السابقة</button>
+      <button class="b gray sm" id="pPrev">‹ السابقة</button>
       <strong id="pTitle"></strong>
-      <button class="btn gray sm" id="pNext">التالية ›</button>
+      <button class="b gray sm" id="pNext">التالية ›</button>
     </div>
     <img id="pImg" alt="صفحة من المصحف">
     <div id="pMsg" class="note"></div>
-    <button class="btn" id="pClose">إغلاق</button>
+    <button class="b g" id="pClose" style="margin-top:8px">إغلاق</button>
   </div>
 </div>
 
@@ -136,13 +196,15 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const AR = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 const ATT = { present:'حاضر', absent:'غائب', late:'متأخر', excused:'بعذر' };
 const ATT_CLS = { present:'p', absent:'a', late:'l', excused:'e' };
+const BRANCH_BANNER = { 'itqan-1':'itqan-branch1-logo.png', 'itqan-2':'branch2-banner.png', 'itqan-3':'branch3-banner.png' };
+const KIND = { rw:'حلقة القراءة والكتابة', quran:'حلقة قرآن' };
 const label = g => `${SU[A[g][0]-1][0]} ${AR(A[g][1])}`;
 const dayStr = off => { const d = new Date(); d.setDate(d.getDate() + off); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
-const qAt = g => Q.filter(x => x <= g).length;   // number of quarter-starts at or before ayah g
-const AYAH_PER_PAGE = A.length / 604, AYAH_PER_QUARTER = A.length / 240;   // متوسط تقريبي
+const qAt = g => Q.filter(x => x <= g).length;
+const AYAH_PER_PAGE = A.length / 604, AYAH_PER_QUARTER = A.length / 240;
 const amount = n => `${n} آية ≈ ${(n / AYAH_PER_PAGE).toFixed(1)} صفحة ≈ ${(n / AYAH_PER_QUARTER).toFixed(2)} ربع`;
 
-let ME = null, TEACHER = null, HALAQAT = [], STUDENTS = [], DAILY = [];
+let ME = null, TEACHER = null, BRANCH = null, HALAQAT = [], STUDENTS = [], DAILY = [];
 let halId = null, activeSid = null, selStart = null, selEnd = null, previewPage = 1;
 let cur = { day: dayStr(0) };
 
@@ -164,14 +226,19 @@ async function enter() {
     if (!t) { $('gMsg').textContent = 'لم يُربط حسابك بسجل المعلم بعد. راجع الإدارة.'; await db.auth.signOut(); return; }
     ME = { id: user.id, name: prof.full_name }; TEACHER = t;
     $('gate').classList.add('hide'); $('app').classList.remove('hide');
-    $('who').textContent = `— ${TEACHER.full_name}`;
+    $('who').textContent = `مرحباً، ${TEACHER.full_name}`;
+    $('branchImg').src = BRANCH_BANNER[TEACHER.branch_id] || 'assoc-banner.png';
     await loadAll();
+    showView('halaqa');
   } catch (e) { $('gMsg').textContent = 'تعذّر الدخول: ' + e.message; }
 }
 
 async function loadAll() {
-  const h = await db.from('itqan_halaqat').select('*').eq('teacher_id', TEACHER.id).order('name');
-  HALAQAT = h.data || [];
+  const [h, br] = await Promise.all([
+    db.from('itqan_halaqat').select('*').eq('teacher_id', TEACHER.id).order('name'),
+    db.from('itqan_branches').select('*').eq('id', TEACHER.branch_id).maybeSingle()
+  ]);
+  HALAQAT = h.data || []; BRANCH = br.data || null;
   const ids = HALAQAT.map(x => x.id);
   const st = ids.length ? await db.from('itqan_students').select('*').in('halaqa_id', ids).order('full_name') : { data: [] };
   STUDENTS = st.data || [];
@@ -179,8 +246,30 @@ async function loadAll() {
   $('halSel').innerHTML = HALAQAT.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('') || '<option>لا توجد حلقات مرتبطة بك</option>';
   halId = HALAQAT[0]?.id || null;
   $('halSel').value = halId || '';
-  $('day').value = cur.day; $('day').min = dayStr(-2); $('day').max = dayStr(0);
+  $('navHalaqa').innerHTML = `حلقتي: ${esc(HALAQAT[0]?.name || '—')}<small>الحضور والتسميع</small>`;
+  $('day').value = cur.day; $('day').min = dayStr(-30); $('day').max = dayStr(0);
+  renderProfile();
   paint();
+}
+
+/* ---------- التنقل ---------- */
+function showView(v) {
+  $('viewProfile').classList.toggle('hide', v !== 'profile');
+  $('viewHalaqa').classList.toggle('hide', v !== 'halaqa');
+  $('navProfile').classList.toggle('off', v !== 'profile');
+  $('navHalaqa').classList.toggle('off', v !== 'halaqa');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function renderProfile() {
+  const hs = HALAQAT.map(h => {
+    const n = STUDENTS.filter(s => s.halaqa_id === h.id).length;
+    return `<span class="pill">${esc(h.name)} — ${KIND[h.kind] || ''} — ${n} طالباً</span>`;
+  }).join('') || '<span class="note">لا توجد حلقات مرتبطة بك بعد.</span>';
+  $('profileBox').innerHTML = `
+    <div style="font-size:18px;font-weight:900;color:#123d24;margin-bottom:6px">${esc(TEACHER.full_name)}</div>
+    <div>الفرع: <b>${esc(BRANCH?.name || '—')}</b></div>
+    <div>الهاتف: <b>${esc(TEACHER.phone || '—')}</b></div>
+    <div style="margin-top:8px">الحلقات المسندة إليك:<br>${hs}</div>`;
 }
 
 /* ---------- الحسابات ---------- */
@@ -192,26 +281,28 @@ function lastAyah(sid, excludeDay) {
   rowsOf(sid).forEach(r => { if (r.ayah_to != null && r.day !== excludeDay) last = Math.max(last, r.ayah_to); });
   return last;
 }
-const pagesLeft = last => last < 0 ? 604 : 604 - A[last][2];   // pages after the last page reached
+const pagesLeft = last => last < 0 ? 604 : 604 - A[last][2];
 const pct = last => ((last + 1) / A.length * 100);
 function recOf(sid, day) { return DAILY.find(r => r.student_id === sid && r.day === day) || null; }
 
 /* ---------- الرسم ---------- */
 function paint() {
   halId = $('halSel').value || halId;
+  const h = HALAQAT.find(x => x.id === halId);
+  if (h) $('navHalaqa').innerHTML = `حلقتي: ${esc(h.name)}<small>الحضور والتسميع</small>`;
   const list = stuList();
   $('cnt').textContent = `(${list.length})`;
   $('roster').innerHTML = list.map(s => {
     const r = recOf(s.id, cur.day);
     const last = lastAyah(s.id, null);
     const atts = ['present','absent','late','excused'].map(k =>
-      `<button class="${ATT_CLS[k]}" ${r?.attendance === k ? 'style="outline:2px solid #1d2b22"' : ''} onclick="setAtt('${s.id}','${k}')">${ATT[k]}</button>`).join('');
+      `<button class="${ATT_CLS[k]} ${r?.attendance === k ? 'cur' : ''}" onclick="setAtt('${s.id}','${k}')">${ATT[k]}</button>`).join('');
     const prog = last < 0 ? 'لم يبدأ بعد' : `${label(last)} — بقي ${pagesLeft(last)} صفحة (${pct(last).toFixed(1)}%)`;
     return `<div class="stu ${activeSid === s.id ? 'on' : ''}">
       <div class="nm">${esc(s.full_name)}</div>
       <div class="note">${prog}</div>
       <div class="att">${atts}</div>
-      <button class="btn sm full" onclick="pick('${s.id}')">سمّع</button>
+      <button class="b g sm full" onclick="pick('${s.id}')">سمّع</button>
     </div>`;
   }).join('') || '<p class="note">لا يوجد طلاب في هذه الحلقة.</p>';
   renderActive();
@@ -222,8 +313,8 @@ function renderActive() {
   if (!s) { $('activeHead').textContent = 'اختر طالباً واضغط «سمّع» لبدء التسميع.'; $('sel').textContent = ''; $('text').innerHTML = ''; $('hist').textContent = '—'; return; }
   const r = recOf(s.id, cur.day);
   const last = lastAyah(s.id, cur.day);
-  $('activeHead').innerHTML = `<b>التسميع: ${esc(s.full_name)}</b> — يوم ${cur.day}${r?.attendance ? ' — ' + ATT[r.attendance] : ''}`;
-  if (selStart == null && selEnd == null) renderSelFromDefault(s.id, last);
+  $('activeHead').innerHTML = `<b style="color:#123d24;font-size:18px">التسميع: ${esc(s.full_name)}</b> — يوم ${cur.day}${r?.attendance ? ' — ' + ATT[r.attendance] : ''}`;
+  if (selStart == null && selEnd == null) renderSelFromDefault(s.id);
   const from = selStart, to = selEnd;
   if (to == null) $('sel').textContent = from == null ? '' : `البداية: ${label(from)} — اضغط على آخر آية`;
   else $('sel').textContent = `من: ${label(Math.min(from, to))} — إلى: ${label(Math.max(from, to))} — ${amount(Math.max(from, to) - Math.min(from, to) + 1)}`;
@@ -231,7 +322,7 @@ function renderActive() {
   renderHist(s.id);
 }
 
-function renderSelFromDefault(sid, excludeLastRow) {
+function renderSelFromDefault(sid) {
   const rec = recOf(sid, cur.day);
   if (rec && rec.ayah_from != null) { selStart = rec.ayah_from; selEnd = rec.ayah_to; return; }
   const base = lastAyah(sid, cur.day);
@@ -256,19 +347,16 @@ function renderText(last) {
 }
 
 function renderHist(sid) {
-  const rows = rowsOf(sid).filter(r => r.day >= dayStr(-2)).sort((a, b) => b.day.localeCompare(a.day));
-  if (!rows.length) { $('hist').textContent = 'لا يوجد سجل في آخر 3 أيام.'; return; }
-  $('hist').innerHTML = `<table><tr><th>اليوم</th><th>الحضور</th><th>ما سُمِّع</th><th>الكمية</th></tr>` +
+  const rows = rowsOf(sid).sort((a, b) => b.day.localeCompare(a.day)).slice(0, 15);
+  if (!rows.length) { $('hist').textContent = 'لا يوجد سجل لهذا الطالب بعد.'; return; }
+  $('hist').innerHTML = `<div class="tw"><table><tr><th>اليوم</th><th>الحضور</th><th>ما سُمِّع</th><th>الكمية</th></tr>` +
     rows.map(r => `<tr><td>${r.day}</td><td>${r.attendance ? ATT[r.attendance] : '—'}</td>
       <td>${r.ayah_from != null ? label(r.ayah_from) + ' ← ' + label(r.ayah_to) : '—'}</td>
-      <td>${r.ayah_from != null ? amount(r.ayah_to - r.ayah_from + 1) : '—'}</td></tr>`).join('') + '</table>';
+      <td>${r.ayah_from != null ? amount(r.ayah_to - r.ayah_from + 1) : '—'}</td></tr>`).join('') + '</table></div>';
 }
 
 /* ---------- الأفعال ---------- */
-function pick(sid) {
-  activeSid = sid; selStart = null; selEnd = null;
-  paint();
-}
+function pick(sid) { activeSid = sid; selStart = null; selEnd = null; paint(); }
 async function setAtt(sid, k) {
   const s = STUDENTS.find(x => x.id === sid);
   const { error } = await db.from('itqan_daily').upsert({
@@ -279,7 +367,8 @@ async function setAtt(sid, k) {
 }
 async function reloadDaily() {
   const ids = HALAQAT.map(x => x.id);
-  const { data } = await db.from('itqan_daily').select('*').gte('day', dayStr(-30)).in('halaqa_id', ids).order('day');
+  if (!ids.length) { DAILY = []; return; }
+  const { data } = await db.from('itqan_daily').select('*').gte('day', dayStr(-400)).in('halaqa_id', ids).order('day');
   DAILY = data || [];
 }
 async function refreshStudent(sid) {
@@ -294,7 +383,6 @@ $('save').onclick = async () => {
   const s = STUDENTS.find(x => x.id === activeSid); if (!s) return;
   if (selEnd == null) return msg('اضغط أولاً على آخر آية سمّعها الطالب.');
   const a = Math.min(selStart, selEnd), b = Math.max(selStart, selEnd);
-  const existing = recOf(s.id, cur.day);
   const row = {
     branch_id: s.branch_id, halaqa_id: s.halaqa_id, student_id: s.id, day: cur.day, recorded_by: ME.id,
     ayah_from: a, ayah_to: b, page_from: A[a][2], page_to: A[b][2]

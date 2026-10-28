@@ -863,41 +863,85 @@ async function saveManagerProfile(id){
 
 const dOff=n=>{const d=new Date();d.setDate(d.getDate()+n);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 const DAILY_ATT={present:'حاضر',absent:'غائب',late:'متأخر',excused:'بعذر'};
-function dailyCard(){return '<div class="card" id="dailyBox"><h3>المتابعة اليومية (آخر 3 أيام)</h3><div class="note">جارٍ التحميل…</div></div>'}
+const DAILY_ATT_CLS={present:'#1b6b3a',absent:'#c8404f',late:'#c9a04a',excused:'#4a6fa5'};
+let DG='teacher';
+const setDG=v=>{DG=v;paint()};
+const TOTAL_AYAHS=6236;
+function dailyCard(){
+  const on=v=>DG===v?'b g':'b gray';
+  return `<div class="card" id="dailyBox"><h3>نتيجة المعلمين: التحضير والتسميع</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="${on('teacher')}" onclick="setDG('teacher')">فرز حسب المعلم</button>
+      <button class="${on('halaqa')}" onclick="setDG('halaqa')">فرز حسب الفصل (الحلقة)</button>
+    </div>
+    <div id="dailyBody" class="note">جارٍ التحميل…</div></div>`;
+}
 async function loadDaily(){
-  const box=$('dailyBox'); if(!box) return;
+  const body=$('dailyBody'); if(!body) return;
   const b=scope(); if(!b) return;
   const [rs,ss]=await Promise.all([
-    db.from('itqan_daily').select('*').eq('branch_id',b).gte('day',dOff(-30)),
-    db.from('itqan_students').select('id,full_name,quran_last_ayah,quran_last_page').eq('branch_id',b).order('full_name')
+    db.from('itqan_daily').select('*').eq('branch_id',b).gte('day',dOff(-400)),
+    db.from('itqan_students').select('id,full_name,halaqa_id,quran_base_ayah,quran_last_ayah,quran_last_page').eq('branch_id',b).order('full_name')
   ]);
-  if(!box.isConnected) return;
-  if(rs.error||ss.error){box.innerHTML='<h3>المتابعة اليومية</h3><div class="note">تعذّر التحميل: '+esc((rs.error||ss.error).message)+'</div>';return}
-  const R=rs.data||[], S=ss.data||[], today=dOff(0), from3=dOff(-2);
-  const TOTAL=6236, PER_PAGE=TOTAL/604, PER_Q=TOTAL/240;
-  const amt=n=>`${n} آية ≈ ${(n/PER_PAGE).toFixed(1)} صفحة`;
-  const cnt=k=>R.filter(r=>r.day===today&&r.attendance===k).length;
-  const rows=S.map(s=>{
+  if(!body.isConnected) return;
+  if(rs.error||ss.error){body.innerHTML='<div class="note">تعذّر التحميل: '+esc((rs.error||ss.error).message)+'</div>';return}
+  const R=rs.data||[], S=ss.data||[], today=dOff(0);
+  const HAs=HA.filter(h=>h.branch_id===b), TEs=TE.filter(t=>t.branch_id===b);
+  // بيانات كل طالب
+  const info=new Map(S.map(s=>{
     const mine=R.filter(r=>r.student_id===s.id);
-    const t=mine.find(r=>r.day===today);
-    const l3=mine.filter(r=>r.day>=from3&&r.ayah_from!=null);
-    const ayahs3=l3.reduce((a,r)=>a+(r.ayah_to-r.ayah_from+1),0);
-    const perDay=ayahs3/3;                       // آيات في اليوم (متوسط آخر 3 أيام)
-    const per5=perDay*5;                         // الكمية كل 5 أيام
-    const doneAyahs=s.quran_last_ayah==null?0:s.quran_last_ayah+1;
-    const leftAyahs=TOTAL-doneAyahs;
-    const days=perDay>0?Math.ceil(leftAyahs/perDay):null;
-    const pct=doneAyahs/TOTAL*100;
-    return `<tr><td>${sName(s)}</td><td>${t?.attendance?DAILY_ATT[t.attendance]:'—'}</td><td>${s.quran_last_page?'صفحة '+s.quran_last_page:'—'}</td>
-      <td>${leftAyahs} آية ≈ ${(leftAyahs/PER_PAGE).toFixed(0)} صفحة (${pct.toFixed(1)}% منجز)</td>
-      <td>${ayahs3?amt(ayahs3):'لم يُسمّع'}</td>
-      <td>${perDay>0?`${per5.toFixed(0)} آية كل 5 أيام`:'—'}</td>
-      <td>${days?`حوالي ${days} يوم`:'—'}</td></tr>`;
-  }).join('');
-  box.innerHTML=`<h3>المتابعة اليومية (آخر 3 أيام)</h3>
-    <div class="note">اليوم ${today}: حاضر ${cnt('present')}، غائب ${cnt('absent')}، متأخر ${cnt('late')}، بعذر ${cnt('excused')} — من ${S.length} طالباً</div>
-    <div class="tw"><table><tr><th>الطالب</th><th>حضور اليوم</th><th>وصل إلى</th><th>المتبقي</th><th>سُمِّع في 3 أيام</th><th>المعدل</th><th>المدة المتوقعة للباقي</th></tr>${rows||'<tr><td colspan="7" class="note">لا طلاب</td></tr>'}</table></div>
-    <p class="note">المدة = المتبقي ÷ متوسط ما سُمِّع في آخر 3 أيام، والأيام بلا تسميع تُحسب صفراً. تحويل الآيات إلى صفحات وأرباع تقريبي (متوسط 10.3 آية للصفحة).</p>`;
+    const t=mine.find(r=>r.day===today)||null;
+    const recs=mine.filter(r=>r.ayah_from!=null).sort((x,y)=>y.day.localeCompare(x.day));
+    const last10=recs.slice(0,10);
+    const rate=last10.length?last10.reduce((a,r)=>a+(r.ayah_to-r.ayah_from+1),0)/last10.length:0;
+    const doneAyahs=s.quran_last_ayah!=null?s.quran_last_ayah+1:(s.quran_base_ayah!=null?s.quran_base_ayah+1:0);
+    const left=Math.max(0,TOTAL_AYAHS-doneAyahs);
+    const days=rate>0?Math.ceil(left/rate):null;
+    let finish=null; if(days!=null){const d=new Date();d.setDate(d.getDate()+days);finish=d.toLocaleDateString('ar',{day:'numeric',month:'long',year:'numeric'})}
+    return [s.id,{s,t,recToday:t&&t.ayah_from!=null?t:null,rate,left,days,finish,doneAyahs,pages:s.quran_last_page}];
+  }));
+  const row=(x,showHalaqa)=>{
+    const {s,t,recToday,rate,left,days,finish,doneAyahs,pages}=x;
+    const hh=HA.find(h=>h.id===s.halaqa_id);
+    const pctDone=(doneAyahs/TOTAL_AYAHS*100).toFixed(1);
+    const attTxt=t?.attendance?`<span style="color:${DAILY_ATT_CLS[t.attendance]};font-weight:800">${DAILY_ATT[t.attendance]}</span>`:'—';
+    const recTxt=recToday?`${recToday.ayah_to-recToday.ayah_from+1} آية (${recToday.ayah_from===recToday.ayah_to?'آية واحدة':'من '+(recToday.ayah_from+1)+' إلى '+(recToday.ayah_to+1)})`:'—';
+    return `<tr>
+      <td>${sName(s)}</td>
+      ${showHalaqa?`<td>${esc(hh?.name||'—')}</td>`:''}
+      <td>${attTxt}</td>
+      <td>${recTxt}</td>
+      <td>${pages?'صفحة '+pages:'—'}</td>
+      <td>${left} آية (${(left/TOTAL_AYAHS*100).toFixed(1)}%) — ${pctDone}% منجز</td>
+      <td>${rate>0?(rate*5).toFixed(0)+' آية كل 5 أيام':'—'}</td>
+      <td>${days?`حوالي ${days} يوم`:'—'}</td>
+      <td>${finish||'—'}</td></tr>`;
+  };
+  const head=(showHalaqa)=>`<div class="tw"><table><tr><th>الطالب</th>${showHalaqa?'<th>الحلقة</th>':''}<th>الحضور اليوم</th><th>تسميع اليوم</th><th>وصل إلى</th><th>المتبقي</th><th>المعدل</th><th>المدة المتوقعة للباقي</th><th>الانتهاء التقريبي</th></tr>`;
+  const counts=arr=>{
+    const c=k=>arr.filter(x=>x.t&&x.t.attendance===k).length;
+    const rec=arr.filter(x=>x.recToday).length;
+    return `حاضر ${c('present')} · غائب ${c('absent')} · متأخر ${c('late')} · بعذر ${c('excused')} · سمّع ${rec} من ${arr.length}`;
+  };
+  let html='';
+  if(DG==='teacher'){
+    const groups=TEs.map(t=>{
+      const hids=HAs.filter(h=>h.teacher_id===t.id).map(h=>h.id);
+      const arr=[...info.values()].filter(x=>hids.includes(x.s.halaqa_id));
+      return {title:`المعلم: ${t.full_name}`,arr,showHalaqa:true};
+    });
+    const unassigned=[...info.values()].filter(x=>!HAs.some(h=>h.id===x.s.halaqa_id&&h.teacher_id));
+    if(unassigned.length) groups.push({title:'بدون معلم',arr:unassigned,showHalaqa:true});
+    html=groups.filter(g=>g.arr.length).map(g=>`<div class="grp">${esc(g.title)} <span class="note">— ${counts(g.arr)}</span></div>${head(true)}${g.arr.map(x=>row(x,true)).join('')}</table></div>`).join('');
+  } else {
+    html=HAs.map(h=>{
+      const arr=[...info.values()].filter(x=>x.s.halaqa_id===h.id);
+      const t=TEs.find(t=>t.id===h.teacher_id);
+      return {title:`الحلقة: ${h.name}`+(t?` — المعلم: ${t.full_name}`:''),arr};
+    }).filter(g=>g.arr.length).map(g=>`<div class="grp">${esc(g.title)} <span class="note">— ${counts(g.arr)}</span></div>${head(false)}${g.arr.map(x=>row(x,false)).join('')}</table></div>`).join('');
+  }
+  body.innerHTML=(html||'<div class="note">لا توجد بيانات بعد.</div>')+
+    `<p class="note" style="margin-top:10px">المعدل = متوسط ما يسمّعه الطالب في آخر 10 دروس تسميع، فإذا تغيّرت سرعته تتغير النتيجة تلقائياً. المدة = المتبقي ÷ المعدل اليومي (الأيام بلا تسميع لا تُحسب).</p>`;
 }
 RV.progress=()=>{
   const b=scope(); if(!b) return noB();
